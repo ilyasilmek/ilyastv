@@ -26,13 +26,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
-
-      - name: Ensure correct Gradle wrapper
-        run: |
-          if [ ! -f gradlew ]; then
-            gradle wrapper --gradle-version 9.3.1
-          fi
-          chmod +x gradlew
+          validate-wrappers: false
 
       - name: Create Debug Keystore if missing
         run: |
@@ -43,7 +37,7 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace -Dksp.useKSP2=true
+        run: gradle assembleDebug --stacktrace -Dksp.useKSP2=true
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
