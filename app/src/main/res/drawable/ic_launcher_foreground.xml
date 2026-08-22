@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Left Antenna Rod -->
+    <path
+        android:pathData="M54,34 L32,18"
+        android:strokeWidth="3.5"
+        android:strokeColor="#E50914"
+        android:strokeLineCap="round" />
+        
+    <!-- Left Antenna Ball Tip -->
+    <path
+        android:pathData="M30,16.5m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0"
+        android:fillColor="#E50914" />
+        
+    <!-- Right Antenna Rod -->
+    <path
+        android:pathData="M54,34 L76,18"
+        android:strokeWidth="3.5"
+        android:strokeColor="#E50914"
+        android:strokeLineCap="round" />
+        
+    <!-- Right Antenna Ball Tip -->
+    <path
+        android:pathData="M78,16.5m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0"
+        android:fillColor="#E50914" />
+
+    <!-- Red Retro TV Frame -->
+    <path
+        android:pathData="M30,34h48c6.6,0 12,5.4 12,12v22c0,6.6 -5.4,12 -12,12h-48c-6.6,0 -12,-5.4 -12,-12v-22c0,-6.6 5.4,-12 12,-12z"
+        android:fillColor="#E50914" />
+        
+    <!-- TV Inner Screen (Dark) -->
+    <path
+        android:pathData="M35,42h38c3.3,0 6,2.7 6,6v14c0,3.3 -2.7,6 -6,6h-38c-3.3,0 -6,-2.7 -6,-6v-14c0,-3.3 2.7,-6 6,-6z"
+        android:fillColor="#0E1015" />
+        
+    <!-- White Play Icon -->
+    <path
+        android:pathData="M50,47.5L62,55L50,62.5Z"
+        android:fillColor="#FFFFFF" />
+</vector>
