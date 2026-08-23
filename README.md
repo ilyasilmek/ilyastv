@@ -12,17 +12,28 @@
 
 ## ✨ Öne Çıkan Özellikler
 
-- **📺 Canlı TV (Live TV):** Kategorilere ayrılmış kesintisiz canlı yayın deneyimi.
-- **🎬 Film & VOD Kütüphanesi:** Afişler, açıklamalar ve kategori filtreleriyle zenginleştirilmiş film izleme alanı.
-- **🍿 Dizi (Series) Desteği:** Sezon ve bölümlere göre organize edilmiş dizi arşivi.
-- **⚡ Gelişmiş Oynatıcı (Media3 / ExoPlayer):** 
-  - HLS (`.m3u8`), DASH, MP4 ve TS akış formatları için tam donanım hızlandırma.
-  - Tam ekran modu, en-boy oranı (Aspect Ratio) değiştirme (16:9, Doldur, Orijinal).
-  - Ekran dokunmatik kontrolleri (ses ve parlaklık ayarları).
+- **📺 Canlı TV (Live TV):** EPG TV rehberi, kategori filtreleme ve kesintisiz canlı yayın deneyimi.
+- **🎬 Film & VOD Kütüphanesi:** Afişler, açıklamalar, süre göstergeleri ve kategori filtreleri.
+- **🍿 Dizi (Series) Desteği:** Sezon ve bölümlere göre organize edilmiş geniş dizi arşivi.
+- **🖼️ PiP (Picture-in-Picture) Modu:** Başka bir uygulamaya geçtiğinizde veya ana ekrana döndüğünüzde yayının arka planda küçük pencerede kesintisiz devam etmesi.
+- **🌐 Çoklu Playlist & Xtream Codes API Desteği:** 
+  - İster doğrudan M3U linki / dosyası ekleyin, ister Xtream Sunucu, Kullanıcı Adı ve Şifre ile giriş yapın.
+  - Birden fazla oynatma listesi ekleyip aralarında anında geçiş yapabilme.
+  - Hesap bitiş tarihi geri sayımı ve kullanıcı bilgisi gösterimi.
+- **⏯️ Geçmiş & "Kaldığın Yerden Devam Et" (Continue Watching):** 
+  - İzlemeyi yarıda bıraktığınız film ve dizilerin süresini otomatik kaydetme ve tek dokunuşla kaldığı dakikadan devam ettirme.
+  - Son izlenen canlı TV kanalları çubuğu.
+- **⚡ Gelişmiş Oynatıcı Kontrolleri (Media3 ExoPlayer):** 
+  - **Jest Kontrolleri:** Sol tarafta dikey kaydırma ile Parlaklık, sağ tarafta Ses kontrolü.
+  - **Hızlı İleri/Geri:** Ekrana çift dokunarak ±10 saniye sarma.
+  - **Çoklu Ses & Altyazı:** Birden fazla ses dili ve altyazı desteği.
+  - **Oynatma Hızı:** 0.5x ile 2.0x arasında hız seçimi.
+  - **Uyku Zamanlayıcısı:** 15dk ile 120dk arası otomatik kapanma zamanlayıcısı.
+  - **En-Boy Oranı:** Fit, Fill, Zoom, Sabit Boyut geçişleri.
+- **🎮 Android TV & D-Pad Kumanda Desteği:** Android TV ve TV kutuları için tam kumanda tuşları (Yukarı/Aşağı kanal değiştirme, Sağ/Sol sarma, Ortadaki tuşla oynatma/duraklatma) ve görsel odak efektleri.
 - **⭐ Favori Yönetimi:** Hızlı erişim için beğendiğiniz kanalları veya yayınları tek tıkla favorilere ekleme (Yerel Room veritabanında saklanır).
 - **🔍 Akıllı Arama & Filtreleme:** Yüzlerce kanal ve içerik arasından anlık arama yapabilme.
-- **📋 Kolay Playlist Ekleme:** M3U / M3U8 linklerinizi hızlıca içe aktarma ve otomatik kanal gruplama.
-- **🌓 Modern Arayüz (Material 3):** Göz yormayan şık karanlık tema, akıcı animasyonlar ve modern tipografi.
+- **🌓 Modern Arayüz (Material 3):** Göz yormayan şık karanlık/aydınlık tema, EPG Rehber, Afiş Izgarası ve Kompakt Liste görünüm modları.
 
 ---
 

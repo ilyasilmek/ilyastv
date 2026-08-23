@@ -1,6 +1,10 @@
 package com.example
 
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -35,6 +39,7 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.Movie
@@ -63,7 +68,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ui.components.LegalDisclaimerDialog
 import com.example.ui.components.StreamPlayer
+import com.example.ui.components.tvFocusable
 import com.example.ui.screens.AccountScreen
 import com.example.ui.screens.LiveTvScreen
 import com.example.ui.screens.MoviesScreen
@@ -85,23 +92,57 @@ enum class NavigationTab(val title: String, val activeIcon: ImageVector, val ina
 class MainActivity : ComponentActivity() {
 
     private val viewModel: IptvViewModel by viewModels()
+    private var isInPipModeState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             val themeSetting by viewModel.themeSetting.collectAsStateWithLifecycle()
+            val inPip by isInPipModeState
             MyApplicationTheme(themeSetting = themeSetting) {
-                StreamFlowApp(viewModel = viewModel)
+                StreamFlowApp(
+                    viewModel = viewModel,
+                    isInPipMode = inPip,
+                    onEnterPip = { enterPipMode() }
+                )
             }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (viewModel.currentlyPlayingChannel.value != null) {
+            enterPipMode()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipModeState.value = isInPictureInPictureMode
+    }
+
+    private fun enterPipMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+                enterPictureInPictureMode(params)
+            } catch (_: Exception) {}
         }
     }
 }
 
 @Composable
-fun StreamFlowApp(viewModel: IptvViewModel) {
+fun StreamFlowApp(
+    viewModel: IptvViewModel,
+    isInPipMode: Boolean = false,
+    onEnterPip: () -> Unit = {}
+) {
     val allChannels by viewModel.allChannels.collectAsStateWithLifecycle()
     val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    val selectedPlaylistId by viewModel.selectedPlaylistId.collectAsStateWithLifecycle()
     val accountInfo by viewModel.latestAccountInfo.collectAsStateWithLifecycle()
 
     val liveChannels by viewModel.liveChannels.collectAsStateWithLifecycle()
@@ -119,9 +160,14 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
     val seriesCategories by viewModel.seriesCategories.collectAsStateWithLifecycle()
     val selectedSeriesCategory by viewModel.selectedSeriesCategory.collectAsStateWithLifecycle()
 
+    val continueWatchingList by viewModel.continueWatchingList.collectAsStateWithLifecycle()
+    val watchHistoryList by viewModel.watchHistoryList.collectAsStateWithLifecycle()
+
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val searchHistory by viewModel.searchHistory.collectAsStateWithLifecycle()
     val globalSearchResults by viewModel.globalSearchResults.collectAsStateWithLifecycle()
     val currentlyPlayingChannel by viewModel.currentlyPlayingChannel.collectAsStateWithLifecycle()
+    val hasAcceptedDisclaimer by viewModel.hasAcceptedDisclaimer.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     val bufferSetting by viewModel.bufferSetting.collectAsStateWithLifecycle()
     val themeSetting by viewModel.themeSetting.collectAsStateWithLifecycle()
@@ -129,23 +175,37 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
 
     var currentTab by remember { mutableStateOf(NavigationTab.LIVE_TV) }
 
+    // First Launch Legal Disclaimer Dialog
+    if (!hasAcceptedDisclaimer) {
+        LegalDisclaimerDialog(
+            isFirstLaunch = true,
+            onAccept = { viewModel.acceptDisclaimer() }
+        )
+    }
+
     // Intercept back button when player is open
-    BackHandler(enabled = currentlyPlayingChannel != null) {
+    val activePlayingChannel = currentlyPlayingChannel
+    BackHandler(enabled = activePlayingChannel != null) {
         viewModel.stopPlayback()
     }
 
-    if (currentlyPlayingChannel != null) {
-        // Fullscreen Player
-        val currentPlayList = when (currentlyPlayingChannel?.streamType) {
+    if (activePlayingChannel != null) {
+        // Fullscreen or PiP Player
+        val currentPlayList = when (activePlayingChannel.streamType) {
             "MOVIE" -> filteredMovieChannels.ifEmpty { movieChannels }
             "SERIES" -> filteredSeriesChannels.ifEmpty { seriesChannels }
             else -> filteredLiveChannels.ifEmpty { liveChannels }
         }
 
         StreamPlayer(
-            channel = currentlyPlayingChannel!!,
+            channel = activePlayingChannel,
             allChannels = currentPlayList.ifEmpty { allChannels },
             bufferOption = bufferSetting,
+            isInPipMode = isInPipMode,
+            onEnterPip = onEnterPip,
+            onProgressUpdate = { positionMs, durationMs ->
+                viewModel.updatePlaybackProgress(activePlayingChannel.id, positionMs, durationMs)
+            },
             onClose = { viewModel.stopPlayback() },
             onToggleFavorite = { viewModel.toggleFavorite(it) },
             onSelectChannel = { viewModel.playChannel(it) },
@@ -199,25 +259,42 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                             }
                         }
 
-                        // Right actions (Theme toggle, Remaining Time Badge & Quick Add)
+                        // Right actions (Theme toggle, Expiration countdown & Add button)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Quick Theme Toggle Icon
+                            // Quick Theme Toggle Icon (Cycles: System -> Dark -> Light -> System)
                             IconButton(
                                 onClick = {
-                                    val nextTheme = if (themeSetting == AppThemeSetting.DARK) AppThemeSetting.LIGHT else AppThemeSetting.DARK
+                                    val nextTheme = when (themeSetting) {
+                                        AppThemeSetting.SYSTEM -> AppThemeSetting.DARK
+                                        AppThemeSetting.DARK -> AppThemeSetting.LIGHT
+                                        AppThemeSetting.LIGHT -> AppThemeSetting.SYSTEM
+                                    }
                                     viewModel.setThemeSetting(nextTheme)
                                 },
                                 modifier = Modifier
                                     .size(36.dp)
                                     .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                                    .tvFocusable(shape = CircleShape) {
+                                        val nextTheme = when (themeSetting) {
+                                            AppThemeSetting.SYSTEM -> AppThemeSetting.DARK
+                                            AppThemeSetting.DARK -> AppThemeSetting.LIGHT
+                                            AppThemeSetting.LIGHT -> AppThemeSetting.SYSTEM
+                                        }
+                                        viewModel.setThemeSetting(nextTheme)
+                                    }
                                     .testTag("quick_theme_toggle_button")
                             ) {
+                                val themeIcon = when (themeSetting) {
+                                    AppThemeSetting.SYSTEM -> Icons.Default.SettingsBrightness
+                                    AppThemeSetting.DARK -> Icons.Default.DarkMode
+                                    AppThemeSetting.LIGHT -> Icons.Default.LightMode
+                                }
                                 Icon(
-                                    imageVector = if (themeSetting == AppThemeSetting.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                    contentDescription = "Tema Değiştir",
+                                    imageVector = themeIcon,
+                                    contentDescription = "Tema Değiştir (${themeSetting.title})",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -232,7 +309,9 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                         1.dp,
                                         if (accountInfo?.isExpired == true) Color(0xFFE53935) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                                     ),
-                                    modifier = Modifier.clickable { currentTab = NavigationTab.ACCOUNT }
+                                    modifier = Modifier
+                                        .tvFocusable(shape = RoundedCornerShape(14.dp)) { currentTab = NavigationTab.ACCOUNT }
+                                        .clickable { currentTab = NavigationTab.ACCOUNT }
                                 ) {
                                     Text(
                                         text = accountInfo?.remainingTimeText ?: "",
@@ -250,6 +329,7 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 modifier = Modifier
                                     .size(36.dp)
                                     .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    .tvFocusable(shape = CircleShape) { currentTab = NavigationTab.ACCOUNT }
                                     .testTag("top_add_playlist_button")
                             ) {
                                 Icon(
@@ -280,13 +360,14 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        NavigationTab.values().forEach { tab ->
+                        NavigationTab.entries.forEach { tab ->
                             val isSelected = (currentTab == tab)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(16.dp))
+                                    .tvFocusable(shape = RoundedCornerShape(16.dp)) { currentTab = tab }
                                     .clickable { currentTab = tab }
                                     .padding(horizontal = 4.dp, vertical = 4.dp)
                                     .testTag("nav_tab_${tab.name.lowercase()}")
@@ -355,6 +436,7 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 categories = liveCategories,
                                 selectedCategory = selectedLiveCategory,
                                 viewMode = viewModeSetting,
+                                watchHistoryList = watchHistoryList,
                                 onViewModeChange = { viewModel.setViewModeSetting(it) },
                                 onSelectCategory = { viewModel.selectLiveCategory(it) },
                                 onChannelClick = { viewModel.playChannel(it) },
@@ -369,6 +451,8 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 categories = movieCategories,
                                 selectedCategory = selectedMovieCategory,
                                 viewMode = viewModeSetting,
+                                continueWatchingList = continueWatchingList,
+                                onResetProgress = { viewModel.resetPlaybackProgress(it) },
                                 onViewModeChange = { viewModel.setViewModeSetting(it) },
                                 onSelectCategory = { viewModel.selectMovieCategory(it) },
                                 onMovieClick = { viewModel.playChannel(it) },
@@ -383,6 +467,8 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 categories = seriesCategories,
                                 selectedCategory = selectedSeriesCategory,
                                 viewMode = viewModeSetting,
+                                continueWatchingList = continueWatchingList,
+                                onResetProgress = { viewModel.resetPlaybackProgress(it) },
                                 onViewModeChange = { viewModel.setViewModeSetting(it) },
                                 onSelectCategory = { viewModel.selectSeriesCategory(it) },
                                 onSeriesClick = { viewModel.playChannel(it) },
@@ -395,7 +481,17 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 searchQuery = searchQuery,
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 searchResults = globalSearchResults,
-                                onChannelClick = { viewModel.playChannel(it) },
+                                searchHistory = searchHistory,
+                                onRemoveSearchHistoryItem = { viewModel.removeSearchQuery(it) },
+                                onClearSearchHistory = { viewModel.clearSearchHistory() },
+                                continueWatchingList = continueWatchingList,
+                                onResetProgress = { viewModel.resetPlaybackProgress(it) },
+                                onChannelClick = {
+                                    if (searchQuery.isNotBlank()) {
+                                        viewModel.addSearchQuery(searchQuery)
+                                    }
+                                    viewModel.playChannel(it)
+                                },
                                 onToggleFavorite = { viewModel.toggleFavorite(it) }
                             )
                         }
@@ -403,10 +499,12 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                             AccountScreen(
                                 accountInfo = accountInfo,
                                 playlists = playlists,
+                                selectedPlaylistId = selectedPlaylistId,
                                 importState = importState,
                                 bufferOption = bufferSetting,
                                 themeSetting = themeSetting,
                                 viewModeSetting = viewModeSetting,
+                                onSelectPlaylist = { viewModel.selectPlaylist(it) },
                                 onBufferOptionChange = { viewModel.setBufferSetting(it) },
                                 onThemeSettingChange = { viewModel.setThemeSetting(it) },
                                 onViewModeSettingChange = { viewModel.setViewModeSetting(it) },
@@ -415,6 +513,9 @@ fun StreamFlowApp(viewModel: IptvViewModel) {
                                 onImportContent = { name, content, isFile -> viewModel.importPlaylistFromContent(name, content, isFile) },
                                 onImportStream = { name, stream -> viewModel.importPlaylistFromStream(name, stream) },
                                 onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                                onClearSearchHistory = { viewModel.clearSearchHistory() },
+                                onClearFavorites = { viewModel.clearAllFavorites() },
+                                onClearWatchHistory = { viewModel.clearWatchHistory() },
                                 onClearAllData = { viewModel.clearAllData() },
                                 onClearImportStatus = { viewModel.clearImportStatus() }
                             )

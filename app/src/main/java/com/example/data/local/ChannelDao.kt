@@ -34,6 +34,12 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE lastPlayedTimestamp > 0 ORDER BY lastPlayedTimestamp DESC LIMIT :limit")
     fun getRecentlyPlayedChannels(limit: Int = 10): Flow<List<ChannelItem>>
 
+    @Query("SELECT * FROM channels WHERE playbackPositionMs > 5000 AND (durationMs == 0 OR playbackPositionMs < durationMs * 0.92) ORDER BY lastPlayedTimestamp DESC LIMIT :limit")
+    fun getContinueWatchingChannels(limit: Int = 15): Flow<List<ChannelItem>>
+
+    @Query("SELECT * FROM channels WHERE lastPlayedTimestamp > 0 ORDER BY lastPlayedTimestamp DESC LIMIT :limit")
+    fun getWatchHistory(limit: Int = 30): Flow<List<ChannelItem>>
+
     @Query("SELECT DISTINCT groupTitle FROM channels WHERE groupTitle IS NOT NULL AND groupTitle != '' ORDER BY groupTitle ASC")
     fun getAllCategories(): Flow<List<String>>
 
@@ -66,6 +72,23 @@ interface ChannelDao {
 
     @Query("UPDATE channels SET lastPlayedTimestamp = :timestamp WHERE id = :channelId")
     suspend fun updateLastPlayed(channelId: Long, timestamp: Long = System.currentTimeMillis())
+
+    @Query("UPDATE channels SET playbackPositionMs = :positionMs, durationMs = :durationMs, lastPlayedTimestamp = :timestamp WHERE id = :channelId")
+    suspend fun updatePlaybackProgress(
+        channelId: Long,
+        positionMs: Long,
+        durationMs: Long,
+        timestamp: Long = System.currentTimeMillis()
+    )
+
+    @Query("UPDATE channels SET playbackPositionMs = 0 WHERE id = :channelId")
+    suspend fun resetPlaybackProgress(channelId: Long)
+
+    @Query("UPDATE channels SET isFavorite = 0")
+    suspend fun clearAllFavorites()
+
+    @Query("UPDATE channels SET playbackPositionMs = 0, lastPlayedTimestamp = 0")
+    suspend fun clearWatchHistory()
 
     @Query("DELETE FROM channels WHERE playlistId = :playlistId")
     suspend fun deleteChannelsByPlaylist(playlistId: Long)

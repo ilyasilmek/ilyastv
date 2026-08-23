@@ -19,6 +19,8 @@ class IptvRepository(
     val allChannels: Flow<List<ChannelItem>> = channelDao.getAllChannels()
     val favoriteChannels: Flow<List<ChannelItem>> = channelDao.getFavoriteChannels()
     val recentChannels: Flow<List<ChannelItem>> = channelDao.getRecentlyPlayedChannels()
+    val continueWatching: Flow<List<ChannelItem>> = channelDao.getContinueWatchingChannels()
+    val watchHistory: Flow<List<ChannelItem>> = channelDao.getWatchHistory()
     val allCategories: Flow<List<String>> = channelDao.getAllCategories()
     val allPlaylists: Flow<List<PlaylistItem>> = playlistDao.getAllPlaylists()
 
@@ -193,6 +195,22 @@ class IptvRepository(
 
     suspend fun recordChannelPlayed(channelId: Long) = withContext(Dispatchers.IO) {
         channelDao.updateLastPlayed(channelId)
+    }
+
+    suspend fun updatePlaybackProgress(channelId: Long, positionMs: Long, durationMs: Long) = withContext(Dispatchers.IO) {
+        channelDao.updatePlaybackProgress(channelId, positionMs, durationMs)
+    }
+
+    suspend fun resetPlaybackProgress(channelId: Long) = withContext(Dispatchers.IO) {
+        channelDao.resetPlaybackProgress(channelId)
+    }
+
+    suspend fun clearAllFavorites() = withContext(Dispatchers.IO) {
+        channelDao.clearAllFavorites()
+    }
+
+    suspend fun clearWatchHistory() = withContext(Dispatchers.IO) {
+        channelDao.clearWatchHistory()
     }
 
     suspend fun deletePlaylist(playlistId: Long) = withContext(Dispatchers.IO) {

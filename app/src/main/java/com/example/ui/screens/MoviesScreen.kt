@@ -1,9 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,15 +16,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Subject
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
@@ -47,7 +46,9 @@ import com.example.data.model.ChannelItem
 import com.example.ui.components.ChannelEpgCard
 import com.example.ui.components.ChannelGridCard
 import com.example.ui.components.ChannelListCard
+import com.example.ui.components.ContinueWatchingCard
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.tvFocusable
 import com.example.ui.theme.ViewModeSetting
 
 @Composable
@@ -57,6 +58,8 @@ fun MoviesScreen(
     categories: List<String>,
     selectedCategory: String,
     viewMode: ViewModeSetting,
+    continueWatchingList: List<ChannelItem> = emptyList(),
+    onResetProgress: (Long) -> Unit = {},
     onViewModeChange: (ViewModeSetting) -> Unit,
     onSelectCategory: (String) -> Unit,
     onMovieClick: (ChannelItem) -> Unit,
@@ -75,6 +78,8 @@ fun MoviesScreen(
         )
         return
     }
+
+    val movieContinueWatching = continueWatchingList.filter { it.streamType == "MOVIE" || it.streamType == "VOD" }
 
     val allCategoryOptions = buildList {
         add("Tümü")
@@ -126,6 +131,7 @@ fun MoviesScreen(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isEpg) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.EPG) }
                             .clickable { onViewModeChange(ViewModeSetting.EPG) }
                             .testTag("movie_view_mode_epg")
                     ) {
@@ -154,6 +160,7 @@ fun MoviesScreen(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isGrid) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.GRID) }
                             .clickable { onViewModeChange(ViewModeSetting.GRID) }
                             .testTag("movie_view_mode_grid")
                     ) {
@@ -163,13 +170,13 @@ fun MoviesScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.GridView,
-                                contentDescription = "Küçük Resim",
+                                contentDescription = "Poster",
                                 tint = if (isGrid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "Kart",
+                                text = "Poster",
                                 color = if (isGrid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -182,6 +189,7 @@ fun MoviesScreen(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isList) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.LIST) }
                             .clickable { onViewModeChange(ViewModeSetting.LIST) }
                             .testTag("movie_view_mode_list")
                     ) {
@@ -208,128 +216,173 @@ fun MoviesScreen(
             }
         }
 
-        // Category Chips (Horizontal scroll)
+        // Horizontal Category Tabs
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(allCategoryOptions) { cat ->
-                val isSelected = cat.equals(selectedCategory, ignoreCase = true)
+                val isSelected = (cat == selectedCategory)
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = if (isSelected) {
-                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                    } else {
-                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier
+                        .tvFocusable(shape = RoundedCornerShape(20.dp)) { onSelectCategory(cat) }
                         .clickable { onSelectCategory(cat) }
-                        .testTag("movie_category_chip_$cat")
+                        .testTag("movie_category_tab_$cat")
                 ) {
-                    Text(
-                        text = cat.uppercase(),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        if (cat == "Favoriler") {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else Color(0xFFE50914),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Text(
+                            text = cat,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
 
-        // Movies List
-        if (movies.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = if (selectedCategory == "Favoriler") Icons.Default.Movie else Icons.Default.SearchOff,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = if (selectedCategory == "Favoriler") "Henüz Favori Film Eklenmedi" else "\"$selectedCategory\" Kategorisinde Film Yok",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = if (selectedCategory == "Favoriler") "Film kartlarındaki kalp simgesine dokunarak favorilerinize ekleyebilirsiniz." else "Başka bir film kategorisi seçebilir veya arama yapabilirsiniz.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Content Area with Continue Watching carousel at top
+        when (viewMode) {
+            ViewModeSetting.EPG -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (movieContinueWatching.isNotEmpty()) {
+                        item {
+                            ContinueWatchingSection(
+                                items = movieContinueWatching,
+                                onMovieClick = onMovieClick,
+                                onResetProgress = onResetProgress
+                            )
+                        }
+                    }
+
+                    itemsIndexed(movies, key = { _, item -> item.id }) { index, movie ->
+                        ChannelEpgCard(
+                            channel = movie,
+                            channelIndex = index + 1,
+                            onClick = { onMovieClick(movie) },
+                            onToggleFavorite = { onToggleFavorite(movie) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(16.dp), onClick = { onMovieClick(movie) })
+                        )
+                    }
                 }
             }
-        } else {
-            AnimatedContent(
-                targetState = viewMode,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "movie_view_mode_anim"
-            ) { mode ->
-                when (mode) {
-                    ViewModeSetting.EPG -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            itemsIndexed(movies, key = { _, item -> item.id }) { index, movie ->
-                                ChannelEpgCard(
-                                    channel = movie,
-                                    channelIndex = index + 1,
-                                    onClick = { onMovieClick(movie) },
-                                    onToggleFavorite = { onToggleFavorite(movie) }
-                                )
-                            }
+            ViewModeSetting.GRID -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (movieContinueWatching.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            ContinueWatchingSection(
+                                items = movieContinueWatching,
+                                onMovieClick = onMovieClick,
+                                onResetProgress = onResetProgress
+                            )
                         }
                     }
-                    ViewModeSetting.GRID -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            itemsIndexed(movies, key = { _, item -> item.id }) { _, movie ->
-                                ChannelGridCard(
-                                    channel = movie,
-                                    onClick = { onMovieClick(movie) },
-                                    onToggleFavorite = { onToggleFavorite(movie) }
-                                )
-                            }
-                        }
-                    }
-                    ViewModeSetting.LIST -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            itemsIndexed(movies, key = { _, item -> item.id }) { index, movie ->
-                                ChannelListCard(
-                                    channel = movie,
-                                    channelIndex = index + 1,
-                                    onClick = { onMovieClick(movie) },
-                                    onToggleFavorite = { onToggleFavorite(movie) }
-                                )
-                            }
-                        }
+
+                    itemsIndexed(movies, key = { _, item -> item.id }) { _, movie ->
+                        ChannelGridCard(
+                            channel = movie,
+                            onClick = { onMovieClick(movie) },
+                            onToggleFavorite = { onToggleFavorite(movie) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(14.dp), onClick = { onMovieClick(movie) })
+                        )
                     }
                 }
+            }
+            ViewModeSetting.LIST -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (movieContinueWatching.isNotEmpty()) {
+                        item {
+                            ContinueWatchingSection(
+                                items = movieContinueWatching,
+                                onMovieClick = onMovieClick,
+                                onResetProgress = onResetProgress
+                            )
+                        }
+                    }
+
+                    itemsIndexed(movies, key = { _, item -> item.id }) { index, movie ->
+                        ChannelListCard(
+                            channel = movie,
+                            channelIndex = index + 1,
+                            onClick = { onMovieClick(movie) },
+                            onToggleFavorite = { onToggleFavorite(movie) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onMovieClick(movie) })
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinueWatchingSection(
+    items: List<ChannelItem>,
+    onMovieClick: (ChannelItem) -> Unit,
+    onResetProgress: (Long) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Kaldığın Yerden Devam Et",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            items(items, key = { it.id }) { item ->
+                ContinueWatchingCard(
+                    channel = item,
+                    onClick = { onMovieClick(item) },
+                    onResetProgress = { onResetProgress(item.id) }
+                )
             }
         }
     }

@@ -29,14 +29,19 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subject
@@ -81,7 +86,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AccountInfo
 import com.example.data.model.PlaylistItem
+import com.example.ui.components.LegalDisclaimerDialog
 import com.example.ui.theme.AppThemeSetting
+import com.example.ui.theme.StreamFlowAccentOrange
 import com.example.ui.theme.StreamFlowLiveRed
 import com.example.ui.theme.ViewModeSetting
 import com.example.ui.viewmodel.BufferOption
@@ -92,10 +99,12 @@ import java.io.InputStream
 fun AccountScreen(
     accountInfo: AccountInfo?,
     playlists: List<PlaylistItem>,
+    selectedPlaylistId: Long? = null,
     importState: ImportState,
     bufferOption: BufferOption,
     themeSetting: AppThemeSetting,
     viewModeSetting: ViewModeSetting,
+    onSelectPlaylist: (Long) -> Unit = {},
     onBufferOptionChange: (BufferOption) -> Unit,
     onThemeSettingChange: (AppThemeSetting) -> Unit,
     onViewModeSettingChange: (ViewModeSetting) -> Unit,
@@ -104,6 +113,9 @@ fun AccountScreen(
     onImportContent: (name: String, content: String, isFile: Boolean) -> Unit,
     onImportStream: (name: String, inputStream: InputStream) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
+    onClearSearchHistory: () -> Unit = {},
+    onClearFavorites: () -> Unit = {},
+    onClearWatchHistory: () -> Unit = {},
     onClearAllData: () -> Unit,
     onClearImportStatus: () -> Unit,
     modifier: Modifier = Modifier
@@ -126,6 +138,10 @@ fun AccountScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showViewModeDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var showClearFavoritesDialog by remember { mutableStateOf(false) }
+    var showClearSearchDialog by remember { mutableStateOf(false) }
+    var showClearWatchHistoryDialog by remember { mutableStateOf(false) }
+    var showDisclaimerDialog by remember { mutableStateOf(false) }
 
     // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -463,11 +479,17 @@ fun AccountScreen(
             }
 
             items(playlists, key = { it.id }) { playlist ->
+                val isSelected = (selectedPlaylistId == null && playlist == playlists.firstOrNull()) || (selectedPlaylistId == playlist.id)
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(
+                        if (isSelected) 1.5.dp else 1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelectPlaylist(playlist.id) }
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -475,12 +497,29 @@ fun AccountScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = playlist.name,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = playlist.name,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                if (isSelected) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    ) {
+                                        Text(
+                                            text = "AKTİF",
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Toplam ${playlist.channelCount} İçerik  •  Canlı: ${playlist.liveCount}  •  Film: ${playlist.movieCount}  •  Dizi: ${playlist.seriesCount}",
@@ -497,15 +536,23 @@ fun AccountScreen(
                             }
                         }
 
-                        IconButton(
-                            onClick = { onDeletePlaylist(playlist.id) },
-                            modifier = Modifier.testTag("delete_playlist_${playlist.id}")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Listeyi Sil",
-                                tint = StreamFlowLiveRed
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!isSelected) {
+                                TextButton(onClick = { onSelectPlaylist(playlist.id) }) {
+                                    Text("Seç", fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { onDeletePlaylist(playlist.id) },
+                                modifier = Modifier.testTag("delete_playlist_${playlist.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteOutline,
+                                    contentDescription = "Listeyi Sil",
+                                    tint = StreamFlowLiveRed
+                                )
+                            }
                         }
                     }
                 }
@@ -571,6 +618,46 @@ fun AccountScreen(
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
+                    // Clear Search History
+                    SettingsItemRow(
+                        icon = Icons.Default.SearchOff,
+                        title = "Arama Geçmişini Temizle",
+                        subtitle = "Kaydedilen son arama sorgularını sıfırlar",
+                        onClick = { showClearSearchDialog = true }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+
+                    // Clear Favorites
+                    SettingsItemRow(
+                        icon = Icons.Default.FavoriteBorder,
+                        title = "Favori Listesini Temizle",
+                        subtitle = "Tüm kanallardaki favori işaretlerini kaldırır",
+                        onClick = { showClearFavoritesDialog = true }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+
+                    // Clear Watch History
+                    SettingsItemRow(
+                        icon = Icons.Default.History,
+                        title = "İzleme Geçmişini Sıfırla",
+                        subtitle = "Kaldığın yerden devam et ve son izlenenler geçmişini temizler",
+                        onClick = { showClearWatchHistoryDialog = true }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+
+                    // Legal Disclaimer & Policy
+                    SettingsItemRow(
+                        icon = Icons.Default.Gavel,
+                        title = "Yasal Uyarı & Sorumluluk Reddi",
+                        subtitle = "Telif hakları bildirimi, kullanım şartları ve yasal sözleşme",
+                        onClick = { showDisclaimerDialog = true }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+
                     // Clear All Data
                     SettingsItemRow(
                         icon = Icons.Default.DeleteOutline,
@@ -592,33 +679,63 @@ fun AccountScreen(
                 Text(text = "Tema Seçimi", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     AppThemeSetting.values().forEach { option ->
-                        Row(
+                        val optIcon = when (option) {
+                            AppThemeSetting.SYSTEM -> Icons.Default.SettingsBrightness
+                            AppThemeSetting.DARK -> Icons.Default.DarkMode
+                            AppThemeSetting.LIGHT -> Icons.Default.LightMode
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (themeSetting == option) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                            border = if (themeSetting == option) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
                                     onThemeSettingChange(option)
                                     showThemeDialog = false
                                 }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(
-                                selected = themeSetting == option,
-                                onClick = {
-                                    onThemeSettingChange(option)
-                                    showThemeDialog = false
-                                },
-                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = option.title,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = themeSetting == option,
+                                    onClick = {
+                                        onThemeSettingChange(option)
+                                        showThemeDialog = false
+                                    },
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = optIcon,
+                                    contentDescription = null,
+                                    tint = if (themeSetting == option) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = option.title,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                    if (option.subtitle.isNotBlank()) {
+                                        Text(
+                                            text = option.subtitle,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 12.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -746,6 +863,111 @@ fun AccountScreen(
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Clear Search History Dialog
+    if (showClearSearchDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearSearchDialog = false },
+            title = { Text("Arama Geçmişi Temizlensin mi?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Kaydedilmiş olan tüm arama geçmişi ve arama etiketleri temizlenecektir.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearSearchHistory()
+                        showClearSearchDialog = false
+                    }
+                ) {
+                    Text("Temizle", color = StreamFlowLiveRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearSearchDialog = false }) {
+                    Text("İptal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Clear Favorites Dialog
+    if (showClearFavoritesDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearFavoritesDialog = false },
+            title = { Text("Favori Listesi Temizlensin mi?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Tüm favori kanallar, filmler ve diziler favori listenizden çıkarılacaktır.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearFavorites()
+                        showClearFavoritesDialog = false
+                    }
+                ) {
+                    Text("Favorileri Temizle", color = StreamFlowLiveRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearFavoritesDialog = false }) {
+                    Text("İptal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Clear Watch History Dialog
+    if (showClearWatchHistoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearWatchHistoryDialog = false },
+            title = { Text("İzleme Geçmişi Sıfırlansın mı?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Kaldığın yerden devam et listesi ve son izlenen içerik kayıtları sıfırlanacaktır.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearWatchHistory()
+                        showClearWatchHistoryDialog = false
+                    }
+                ) {
+                    Text("Sıfırla", color = StreamFlowLiveRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearWatchHistoryDialog = false }) {
+                    Text("İptal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Legal Disclaimer Modal (Review Mode)
+    if (showDisclaimerDialog) {
+        LegalDisclaimerDialog(
+            isFirstLaunch = false,
+            onAccept = { showDisclaimerDialog = false },
+            onDismiss = { showDisclaimerDialog = false }
         )
     }
 

@@ -9,7 +9,7 @@ import com.example.data.model.PlaylistItem
 
 @Database(
     entities = [PlaylistItem::class, ChannelItem::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,7 +26,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "streamflow_iptv.db"
-                ).fallbackToDestructiveMigration().build()
+                )
+                    .fallbackToDestructiveMigration(true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

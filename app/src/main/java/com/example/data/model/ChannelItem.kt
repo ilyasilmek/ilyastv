@@ -29,6 +29,8 @@ data class ChannelItem(
     val quality: String = "1080p", // "1080p", "4K", "HDR", "720p"
     val isFavorite: Boolean = false,
     val lastPlayedTimestamp: Long = 0,
-    val posterUrl: String? = null
+    val posterUrl: String? = null,
+    val playbackPositionMs: Long = 0L,
+    val durationMs: Long = 0L
 )
 

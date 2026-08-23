@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
@@ -36,12 +37,67 @@ enum class BufferOption(val label: String, val description: String) {
 class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: IptvRepository
+    private val prefs = application.getSharedPreferences("ilyastv_prefs", Context.MODE_PRIVATE)
+
+    private val _hasAcceptedDisclaimer = MutableStateFlow(prefs.getBoolean("disclaimer_accepted", false))
+    val hasAcceptedDisclaimer: StateFlow<Boolean> = _hasAcceptedDisclaimer.asStateFlow()
+
+    private val _searchHistory = MutableStateFlow<List<String>>(loadSearchHistory())
+    val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
 
     init {
         val db = AppDatabase.getDatabase(application)
         repository = IptvRepository(db.playlistDao(), db.channelDao())
         viewModelScope.launch {
             repository.ensureDefaultDataLoaded()
+        }
+    }
+
+    private fun loadSearchHistory(): List<String> {
+        val raw = prefs.getString("recent_searches", "") ?: ""
+        return if (raw.isBlank()) emptyList() else raw.split("|||").filter { it.isNotBlank() }
+    }
+
+    private fun saveSearchHistory(list: List<String>) {
+        val raw = list.take(15).joinToString("|||")
+        prefs.edit().putString("recent_searches", raw).apply()
+        _searchHistory.value = list.take(15)
+    }
+
+    fun acceptDisclaimer() {
+        prefs.edit().putBoolean("disclaimer_accepted", true).apply()
+        _hasAcceptedDisclaimer.value = true
+    }
+
+    fun addSearchQuery(query: String) {
+        val clean = query.trim()
+        if (clean.length < 2) return
+        val current = _searchHistory.value.toMutableList()
+        current.remove(clean)
+        current.add(0, clean)
+        saveSearchHistory(current)
+    }
+
+    fun removeSearchQuery(query: String) {
+        val current = _searchHistory.value.toMutableList()
+        current.remove(query)
+        saveSearchHistory(current)
+    }
+
+    fun clearSearchHistory() {
+        prefs.edit().remove("recent_searches").apply()
+        _searchHistory.value = emptyList()
+    }
+
+    fun clearAllFavorites() {
+        viewModelScope.launch {
+            repository.clearAllFavorites()
+        }
+    }
+
+    fun clearWatchHistory() {
+        viewModelScope.launch {
+            repository.clearWatchHistory()
         }
     }
 
@@ -59,6 +115,15 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     val recentChannels: StateFlow<List<ChannelItem>> = repository.recentChannels
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val continueWatchingList: StateFlow<List<ChannelItem>> = repository.continueWatching
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val watchHistoryList: StateFlow<List<ChannelItem>> = repository.watchHistory
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _selectedPlaylistId = MutableStateFlow<Long?>(null)
+    val selectedPlaylistId: StateFlow<Long?> = _selectedPlaylistId.asStateFlow()
 
     // Stream-type specific channels
     val liveChannels: StateFlow<List<ChannelItem>> = repository.getChannelsByStreamType("LIVE")
@@ -99,13 +164,40 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     private val _importState = MutableStateFlow<ImportState>(ImportState.Idle)
     val importState: StateFlow<ImportState> = _importState.asStateFlow()
 
-    private val _bufferSetting = MutableStateFlow(BufferOption.NORMAL)
+    private fun loadThemeSetting(): AppThemeSetting {
+        val name = prefs.getString("app_theme_setting", AppThemeSetting.SYSTEM.name) ?: AppThemeSetting.SYSTEM.name
+        return try {
+            AppThemeSetting.valueOf(name)
+        } catch (_: Exception) {
+            AppThemeSetting.SYSTEM
+        }
+    }
+
+    private fun loadBufferSetting(): BufferOption {
+        val name = prefs.getString("app_buffer_setting", BufferOption.NORMAL.name) ?: BufferOption.NORMAL.name
+        return try {
+            BufferOption.valueOf(name)
+        } catch (_: Exception) {
+            BufferOption.NORMAL
+        }
+    }
+
+    private fun loadViewModeSetting(): ViewModeSetting {
+        val name = prefs.getString("app_view_mode_setting", ViewModeSetting.EPG.name) ?: ViewModeSetting.EPG.name
+        return try {
+            ViewModeSetting.valueOf(name)
+        } catch (_: Exception) {
+            ViewModeSetting.EPG
+        }
+    }
+
+    private val _bufferSetting = MutableStateFlow(loadBufferSetting())
     val bufferSetting: StateFlow<BufferOption> = _bufferSetting.asStateFlow()
 
-    private val _themeSetting = MutableStateFlow(AppThemeSetting.DARK)
+    private val _themeSetting = MutableStateFlow(loadThemeSetting())
     val themeSetting: StateFlow<AppThemeSetting> = _themeSetting.asStateFlow()
 
-    private val _viewModeSetting = MutableStateFlow(ViewModeSetting.EPG)
+    private val _viewModeSetting = MutableStateFlow(loadViewModeSetting())
     val viewModeSetting: StateFlow<ViewModeSetting> = _viewModeSetting.asStateFlow()
 
     private val _isExternalPlayerEnabled = MutableStateFlow(false)
@@ -295,6 +387,39 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     fun deletePlaylist(playlistId: Long) {
         viewModelScope.launch {
             repository.deletePlaylist(playlistId)
+            if (_selectedPlaylistId.value == playlistId) {
+                _selectedPlaylistId.value = null
+            }
+        }
+    }
+
+    fun selectPlaylist(playlistId: Long?) {
+        _selectedPlaylistId.value = playlistId
+    }
+
+    fun updatePlaybackProgress(channelId: Long, positionMs: Long, durationMs: Long) {
+        viewModelScope.launch {
+            repository.updatePlaybackProgress(channelId, positionMs, durationMs)
+        }
+    }
+
+    fun resetPlaybackProgress(channelId: Long) {
+        viewModelScope.launch {
+            repository.resetPlaybackProgress(channelId)
+        }
+    }
+
+    fun refreshPlaylist(playlist: PlaylistItem) {
+        val url = playlist.urlOrPath
+        if (playlist.isLocalFile) return
+        _importState.value = ImportState.Loading
+        viewModelScope.launch {
+            val result = repository.importPlaylistFromUrl(playlist.name, url)
+            result.onSuccess { count ->
+                _importState.value = ImportState.Success("${playlist.name} güncellendi! Toplam $count içerik yenilendi.")
+            }.onFailure { error ->
+                _importState.value = ImportState.Error("Liste güncellenemedi: ${error.localizedMessage}")
+            }
         }
     }
 
@@ -306,14 +431,17 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setBufferSetting(setting: BufferOption) {
+        prefs.edit().putString("app_buffer_setting", setting.name).apply()
         _bufferSetting.value = setting
     }
 
     fun setThemeSetting(setting: AppThemeSetting) {
+        prefs.edit().putString("app_theme_setting", setting.name).apply()
         _themeSetting.value = setting
     }
 
     fun setViewModeSetting(setting: ViewModeSetting) {
+        prefs.edit().putString("app_view_mode_setting", setting.name).apply()
         _viewModeSetting.value = setting
     }
 

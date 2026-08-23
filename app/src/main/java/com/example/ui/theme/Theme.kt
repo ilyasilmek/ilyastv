@@ -6,10 +6,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-enum class AppThemeSetting(val title: String) {
-    DARK("Karanlık Mod"),
-    LIGHT("Aydınlık Mod"),
-    SYSTEM("Sistem Teması")
+enum class AppThemeSetting(val title: String, val subtitle: String = "") {
+    SYSTEM("Sistem Varsayılanı", "Cihazın açık/koyu moduna göre otomatik değişir"),
+    DARK("Karanlık Mod", "Her zaman koyu tema kullanılır"),
+    LIGHT("Aydınlık Mod", "Her zaman açık tema kullanılır")
 }
 
 enum class ViewModeSetting(val title: String) {

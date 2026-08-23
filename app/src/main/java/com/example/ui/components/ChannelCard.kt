@@ -222,7 +222,7 @@ fun ChannelEpgCard(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = if (!channel.currentProgram.isNullOrBlank()) channel.currentProgram!! else "${channel.name} - Günlük Canlı Yayın Akışı",
+                        text = channel.currentProgram?.ifBlank { null } ?: "${channel.name} - Günlük Canlı Yayın Akışı",
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -359,12 +359,31 @@ fun ChannelGridCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.8f)
+                                Color.Black.copy(alpha = 0.85f)
                             ),
                             startY = 40f
                         )
                     )
             )
+
+            // Playback progress indicator for movies & series if saved
+            if (channel.playbackPositionMs > 5000 && channel.durationMs > 0) {
+                val progress = (channel.playbackPositionMs.toFloat() / channel.durationMs.toFloat()).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.White.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(4.dp)
+                            .background(Color(0xFFE50914))
+                    )
+                }
+            }
 
             // Stream Type Badge
             val badgeText = when (channel.streamType) {
@@ -441,7 +460,7 @@ fun ChannelGridCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = if (!channel.currentProgram.isNullOrBlank()) channel.currentProgram!! else channel.groupTitle,
+            text = channel.currentProgram?.ifBlank { null } ?: channel.groupTitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             maxLines = 1,
@@ -523,7 +542,7 @@ fun ChannelListCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (!channel.currentProgram.isNullOrBlank()) channel.currentProgram!! else channel.groupTitle,
+                    text = channel.currentProgram?.ifBlank { null } ?: channel.groupTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -571,6 +590,146 @@ fun ChannelListCard(
                     tint = if (channel.isFavorite) StreamFlowLiveRed else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * 4. CONTINUE WATCHING HERO CARD (Kaldığın Yerden Devam Et Kartı)
+ */
+@Composable
+fun ContinueWatchingCard(
+    channel: ChannelItem,
+    onClick: () -> Unit,
+    onResetProgress: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val progress = if (channel.durationMs > 0) {
+        (channel.playbackPositionMs.toFloat() / channel.durationMs.toFloat()).coerceIn(0.05f, 1f)
+    } else 0.35f
+
+    val positionMinutes = (channel.playbackPositionMs / 60000).toInt()
+    val totalMinutes = (channel.durationMs / 60000).toInt()
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        modifier = modifier
+            .width(220.dp)
+            .tvFocusable(shape = RoundedCornerShape(16.dp), onClick = onClick)
+            .testTag("continue_watching_${channel.id}")
+    ) {
+        Column {
+            // Thumbnail / Poster Box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(115.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            ) {
+                if (!channel.posterUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = channel.posterUrl,
+                        contentDescription = channel.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (!channel.logoUrl.isNullOrBlank()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AsyncImage(
+                            model = channel.logoUrl,
+                            contentDescription = channel.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize(0.6f)
+                        )
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Tv,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                // Gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                            )
+                        )
+                )
+
+                // Play floating bubble
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(Color(0xFFE50914), CircleShape)
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Devam Et",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Progress Bar at bottom of thumbnail
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.White.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(4.dp)
+                            .background(Color(0xFFE50914))
+                    )
+                }
+            }
+
+            // Info Section
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = channel.name,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (totalMinutes > 0) "$positionMinutes dk / $totalMinutes dk" else "$positionMinutes. dk kaldı",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = channel.groupTitle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

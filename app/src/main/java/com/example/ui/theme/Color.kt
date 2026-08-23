@@ -40,6 +40,8 @@ val StreamFlowOnErrorContainer = Color(0xFFFFDAD6)
 val StreamFlowOutline = Color(0xFF8A91A0)
 val StreamFlowOutlineVariant = Color(0xFF414754)
 val StreamFlowLiveRed = Color(0xFFFF3B30)
+val StreamFlowAccentOrange = Color(0xFFFF9800)
+val StreamFlowAccentGold = Color(0xFFFFC107)
 
 // Light Theme Colors
 val StreamFlowLightBackground = Color(0xFFF6F8FB)

@@ -1,10 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,15 +16,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Subject
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
@@ -49,6 +46,7 @@ import com.example.ui.components.ChannelEpgCard
 import com.example.ui.components.ChannelGridCard
 import com.example.ui.components.ChannelListCard
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.tvFocusable
 import com.example.ui.theme.StreamFlowLiveRed
 import com.example.ui.theme.ViewModeSetting
 
@@ -59,6 +57,7 @@ fun LiveTvScreen(
     categories: List<String>,
     selectedCategory: String,
     viewMode: ViewModeSetting,
+    watchHistoryList: List<ChannelItem> = emptyList(),
     onViewModeChange: (ViewModeSetting) -> Unit,
     onSelectCategory: (String) -> Unit,
     onChannelClick: (ChannelItem) -> Unit,
@@ -78,6 +77,8 @@ fun LiveTvScreen(
         return
     }
 
+    val liveHistory = watchHistoryList.filter { it.streamType == "LIVE" }
+
     val allCategoryOptions = buildList {
         add("Tümü")
         add("Favoriler")
@@ -89,7 +90,7 @@ fun LiveTvScreen(
             .fillMaxSize()
             .testTag("live_tv_screen")
     ) {
-        // Controls Row: Channel Count & View Mode Switcher
+        // Controls Row: Count & View Switcher (EPG Rehber / Izgara / Liste)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,14 +108,14 @@ fun LiveTvScreen(
                 if (selectedCategory != "Tümü") {
                     Text(
                         text = " • $selectedCategory",
-                        color = MaterialTheme.colorScheme.primary,
+                        color = StreamFlowLiveRed,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            // View Mode Selector Segmented Control (EPG, Grid, List)
+            // View mode switch chips
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -124,12 +125,12 @@ fun LiveTvScreen(
                     modifier = Modifier.padding(2.dp),
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // EPG Mode
                     val isEpg = (viewMode == ViewModeSetting.EPG)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isEpg) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.EPG) }
                             .clickable { onViewModeChange(ViewModeSetting.EPG) }
                             .testTag("view_mode_epg")
                     ) {
@@ -153,12 +154,12 @@ fun LiveTvScreen(
                         }
                     }
 
-                    // Grid Mode
                     val isGrid = (viewMode == ViewModeSetting.GRID)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isGrid) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.GRID) }
                             .clickable { onViewModeChange(ViewModeSetting.GRID) }
                             .testTag("view_mode_grid")
                     ) {
@@ -168,13 +169,13 @@ fun LiveTvScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.GridView,
-                                contentDescription = "Küçük Resim",
+                                contentDescription = "Izgara",
                                 tint = if (isGrid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "Kart",
+                                text = "Izgara",
                                 color = if (isGrid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -182,12 +183,12 @@ fun LiveTvScreen(
                         }
                     }
 
-                    // List Mode
                     val isList = (viewMode == ViewModeSetting.LIST)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isList) MaterialTheme.colorScheme.primary else Color.Transparent,
                         modifier = Modifier
+                            .tvFocusable(shape = RoundedCornerShape(10.dp)) { onViewModeChange(ViewModeSetting.LIST) }
                             .clickable { onViewModeChange(ViewModeSetting.LIST) }
                             .testTag("view_mode_list")
                     ) {
@@ -197,7 +198,7 @@ fun LiveTvScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ViewList,
-                                contentDescription = "Kompakt Liste",
+                                contentDescription = "Liste",
                                 tint = if (isList) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(15.dp)
                             )
@@ -214,128 +215,206 @@ fun LiveTvScreen(
             }
         }
 
-        // Category Chips (Horizontal scroll)
+        // Horizontal Category Tabs
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(allCategoryOptions) { cat ->
-                val isSelected = cat.equals(selectedCategory, ignoreCase = true)
+                val isSelected = (cat == selectedCategory)
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = if (isSelected) {
-                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                    } else {
-                        androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) StreamFlowLiveRed else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier
+                        .tvFocusable(shape = RoundedCornerShape(20.dp)) { onSelectCategory(cat) }
                         .clickable { onSelectCategory(cat) }
-                        .testTag("category_chip_$cat")
+                        .testTag("category_tab_$cat")
                 ) {
-                    Text(
-                        text = cat.uppercase(),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        if (cat == "Favoriler") {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else StreamFlowLiveRed,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Text(
+                            text = cat,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
 
-        // Channels Content with Selected View Mode
-        if (channels.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = if (selectedCategory == "Favoriler") Icons.Default.LiveTv else Icons.Default.SearchOff,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = if (selectedCategory == "Favoriler") "Henüz Favori Kanal Eklenmedi" else "\"$selectedCategory\" Kategorisinde Kanal Yok",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = if (selectedCategory == "Favoriler") "Kanal kartlarındaki kalp simgesine basarak favorilerinize ekleyebilirsiniz." else "Başka bir kategori seçebilir veya yeni IPTV listesi yükleyebilirsiniz.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Content Area depending on viewMode
+        when (viewMode) {
+            ViewModeSetting.EPG -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (liveHistory.isNotEmpty()) {
+                        item {
+                            RecentlyWatchedChannelsRow(
+                                channels = liveHistory,
+                                onChannelClick = onChannelClick
+                            )
+                        }
+                    }
+
+                    itemsIndexed(channels, key = { _, item -> item.id }) { index, channel ->
+                        ChannelEpgCard(
+                            channel = channel,
+                            channelIndex = index + 1,
+                            onClick = { onChannelClick(channel) },
+                            onToggleFavorite = { onToggleFavorite(channel) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(16.dp), onClick = { onChannelClick(channel) })
+                        )
+                    }
                 }
             }
-        } else {
-            AnimatedContent(
-                targetState = viewMode,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "view_mode_anim"
-            ) { mode ->
-                when (mode) {
-                    ViewModeSetting.EPG -> {
-                        // EPG Guide View (Detailed timeline, current & next show)
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+            ViewModeSetting.GRID -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (liveHistory.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            RecentlyWatchedChannelsRow(
+                                channels = liveHistory,
+                                onChannelClick = onChannelClick
+                            )
+                        }
+                    }
+
+                    itemsIndexed(channels, key = { _, item -> item.id }) { _, channel ->
+                        ChannelGridCard(
+                            channel = channel,
+                            onClick = { onChannelClick(channel) },
+                            onToggleFavorite = { onToggleFavorite(channel) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(14.dp), onClick = { onChannelClick(channel) })
+                        )
+                    }
+                }
+            }
+            ViewModeSetting.LIST -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (liveHistory.isNotEmpty()) {
+                        item {
+                            RecentlyWatchedChannelsRow(
+                                channels = liveHistory,
+                                onChannelClick = onChannelClick
+                            )
+                        }
+                    }
+
+                    itemsIndexed(channels, key = { _, item -> item.id }) { index, channel ->
+                        ChannelListCard(
+                            channel = channel,
+                            channelIndex = index + 1,
+                            onClick = { onChannelClick(channel) },
+                            onToggleFavorite = { onToggleFavorite(channel) },
+                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onChannelClick(channel) })
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentlyWatchedChannelsRow(
+    channels: List<ChannelItem>,
+    onChannelClick: (ChannelItem) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = null,
+                tint = StreamFlowLiveRed,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Son İzlenen Kanallar",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            items(channels.take(8), key = { it.id }) { ch ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .width(160.dp)
+                        .tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onChannelClick(ch) })
+                        .clickable { onChannelClick(ch) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.size(32.dp)
                         ) {
-                            itemsIndexed(channels, key = { _, item -> item.id }) { index, channel ->
-                                ChannelEpgCard(
-                                    channel = channel,
-                                    channelIndex = index + 1,
-                                    onClick = { onChannelClick(channel) },
-                                    onToggleFavorite = { onToggleFavorite(channel) }
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = ch.name.take(2).uppercase(),
+                                    color = StreamFlowLiveRed,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-                    }
-                    ViewModeSetting.GRID -> {
-                        // Grid / Thumbnail View (Poster cards)
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            itemsIndexed(channels, key = { _, item -> item.id }) { _, channel ->
-                                ChannelGridCard(
-                                    channel = channel,
-                                    onClick = { onChannelClick(channel) },
-                                    onToggleFavorite = { onToggleFavorite(channel) }
-                                )
-                            }
-                        }
-                    }
-                    ViewModeSetting.LIST -> {
-                        // Compact List View
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            itemsIndexed(channels, key = { _, item -> item.id }) { index, channel ->
-                                ChannelListCard(
-                                    channel = channel,
-                                    channelIndex = index + 1,
-                                    onClick = { onChannelClick(channel) },
-                                    onToggleFavorite = { onToggleFavorite(channel) }
-                                )
-                            }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = ch.name,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = ch.quality,
+                                color = StreamFlowLiveRed,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
