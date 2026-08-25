@@ -37,12 +37,14 @@ jobs:
           elif [ ! -f my-upload-key.jks ]; then
             keytool -genkeypair -v -keystore my-upload-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass ilyastv123456 -keypass ilyastv123456 -dname "CN=IlyasTV, OU=Mobile, O=IlyasTV, L=Istanbul, ST=Istanbul, C=TR"
           fi
+          # Anahtarı hem ana dizine hem de app klasörüne kopyalıyoruz
+          cp my-upload-key.jks app/my-upload-key.jks
 
       - name: Build Release Bundle (.aab)
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'ilyastv123456' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'ilyastv123456' }}
-          KEYSTORE_PATH: my-upload-key.jks
+          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
         run: gradle bundleRelease --stacktrace -Dksp.useKSP2=true
 
       - name: Upload AAB Artifact
