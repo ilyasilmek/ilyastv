@@ -53,6 +53,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -175,18 +176,34 @@ fun StreamFlowApp(
 
     var currentTab by remember { mutableStateOf(NavigationTab.LIVE_TV) }
 
+    val activePlayingChannel = currentlyPlayingChannel
+
+    // Clear search query automatically when exiting the Search tab
+    LaunchedEffect(currentTab) {
+        if (currentTab != NavigationTab.SEARCH) {
+            viewModel.clearSearchQuery()
+        }
+    }
+
+    // Intercept back button when player is open
+    BackHandler(enabled = activePlayingChannel != null) {
+        viewModel.stopPlayback()
+    }
+
+    // Intercept back button when on search or other secondary tabs to return home cleanly
+    BackHandler(enabled = activePlayingChannel == null && currentTab != NavigationTab.LIVE_TV) {
+        if (currentTab == NavigationTab.SEARCH) {
+            viewModel.clearSearchQuery()
+        }
+        currentTab = NavigationTab.LIVE_TV
+    }
+
     // First Launch Legal Disclaimer Dialog
     if (!hasAcceptedDisclaimer) {
         LegalDisclaimerDialog(
             isFirstLaunch = true,
             onAccept = { viewModel.acceptDisclaimer() }
         )
-    }
-
-    // Intercept back button when player is open
-    val activePlayingChannel = currentlyPlayingChannel
-    BackHandler(enabled = activePlayingChannel != null) {
-        viewModel.stopPlayback()
     }
 
     if (activePlayingChannel != null) {
@@ -513,6 +530,8 @@ fun StreamFlowApp(
                                 onImportContent = { name, content, isFile -> viewModel.importPlaylistFromContent(name, content, isFile) },
                                 onImportStream = { name, stream -> viewModel.importPlaylistFromStream(name, stream) },
                                 onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                                onRefreshPlaylist = { viewModel.refreshPlaylist(it) },
+                                onUpdatePlaylist = { id, name, url -> viewModel.updatePlaylist(id, name, url) },
                                 onClearSearchHistory = { viewModel.clearSearchHistory() },
                                 onClearFavorites = { viewModel.clearAllFavorites() },
                                 onClearWatchHistory = { viewModel.clearWatchHistory() },

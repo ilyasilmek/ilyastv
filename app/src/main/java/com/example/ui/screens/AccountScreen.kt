@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FolderOpen
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Speed
@@ -87,6 +89,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AccountInfo
 import com.example.data.model.PlaylistItem
 import com.example.ui.components.LegalDisclaimerDialog
+import com.example.ui.components.tvFocusable
 import com.example.ui.theme.AppThemeSetting
 import com.example.ui.theme.StreamFlowAccentOrange
 import com.example.ui.theme.StreamFlowLiveRed
@@ -113,6 +116,8 @@ fun AccountScreen(
     onImportContent: (name: String, content: String, isFile: Boolean) -> Unit,
     onImportStream: (name: String, inputStream: InputStream) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
+    onRefreshPlaylist: (Long) -> Unit = {},
+    onUpdatePlaylist: (playlistId: Long, name: String, url: String) -> Unit = { _, _, _ -> },
     onClearSearchHistory: () -> Unit = {},
     onClearFavorites: () -> Unit = {},
     onClearWatchHistory: () -> Unit = {},
@@ -142,6 +147,7 @@ fun AccountScreen(
     var showClearSearchDialog by remember { mutableStateOf(false) }
     var showClearWatchHistoryDialog by remember { mutableStateOf(false) }
     var showDisclaimerDialog by remember { mutableStateOf(false) }
+    var playlistToEdit by remember { mutableStateOf<PlaylistItem?>(null) }
 
     // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -536,21 +542,64 @@ fun AccountScreen(
                             }
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             if (!isSelected) {
-                                TextButton(onClick = { onSelectPlaylist(playlist.id) }) {
+                                TextButton(
+                                    onClick = { onSelectPlaylist(playlist.id) },
+                                    modifier = Modifier.tvFocusable(shape = RoundedCornerShape(8.dp)) { onSelectPlaylist(playlist.id) }
+                                ) {
                                     Text("Seç", fontWeight = FontWeight.Bold)
                                 }
                             }
 
+                            // Refresh button (Kaynağı Yenile)
+                            IconButton(
+                                onClick = { onRefreshPlaylist(playlist.id) },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .tvFocusable(shape = CircleShape) { onRefreshPlaylist(playlist.id) }
+                                    .testTag("refresh_playlist_${playlist.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Kaynağı Yenile",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // Edit button (Kaynağı Düzenle)
+                            IconButton(
+                                onClick = { playlistToEdit = playlist },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .tvFocusable(shape = CircleShape) { playlistToEdit = playlist }
+                                    .testTag("edit_playlist_${playlist.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Kaynağı Düzenle",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // Delete button (Listeyi Sil)
                             IconButton(
                                 onClick = { onDeletePlaylist(playlist.id) },
-                                modifier = Modifier.testTag("delete_playlist_${playlist.id}")
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .tvFocusable(shape = CircleShape) { onDeletePlaylist(playlist.id) }
+                                    .testTag("delete_playlist_${playlist.id}")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "Listeyi Sil",
-                                    tint = StreamFlowLiveRed
+                                    tint = StreamFlowLiveRed,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -995,6 +1044,99 @@ fun AccountScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text("İptal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Edit Playlist Dialog (Kaynağı Düzenle)
+    if (playlistToEdit != null) {
+        val targetPlaylist = playlistToEdit!!
+        var editedName by remember(targetPlaylist) { mutableStateOf(targetPlaylist.name) }
+        var editedUrl by remember(targetPlaylist) { mutableStateOf(targetPlaylist.urlOrPath) }
+
+        AlertDialog(
+            onDismissRequest = { playlistToEdit = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Kaynağı Düzenle",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Oynatma listesi adını veya bağlantı URL'sini güncelleyin:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp
+                    )
+
+                    OutlinedTextField(
+                        value = editedName,
+                        onValueChange = { editedName = it },
+                        label = { Text("Liste Adı") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = outlinedColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("edit_playlist_name_input")
+                    )
+
+                    if (!targetPlaylist.isLocalFile) {
+                        OutlinedTextField(
+                            value = editedUrl,
+                            onValueChange = { editedUrl = it },
+                            label = { Text("M3U / Xtream URL") },
+                            singleLine = false,
+                            maxLines = 3,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = outlinedColors(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("edit_playlist_url_input")
+                        )
+                    }
+
+                    Text(
+                        text = if (targetPlaylist.isLocalFile)
+                            "ℹ️ Yerel M3U dosyalarının adı düzenlenebilir. İçeriği güncellemek için yeni dosya seçebilirsiniz."
+                        else
+                            "ℹ️ URL adresi güncellendiğinde veya kaydedildiğinde kanallar otomatik olarak yeniden çekilir.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdatePlaylist(targetPlaylist.id, editedName, editedUrl)
+                        playlistToEdit = null
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.testTag("save_edit_playlist_button")
+                ) {
+                    Text("Kaydet & Güncelle", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { playlistToEdit = null }) {
                     Text("İptal", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },

@@ -203,60 +203,49 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     private val _isExternalPlayerEnabled = MutableStateFlow(false)
     val isExternalPlayerEnabled: StateFlow<Boolean> = _isExternalPlayerEnabled.asStateFlow()
 
-    // Filtered Live TV Channels
+    // Filtered Live TV Channels (Isolated from search queries)
     val filteredLiveChannels: StateFlow<List<ChannelItem>> = combine(
         liveChannels,
-        _selectedLiveCategory,
-        _searchQuery
-    ) { channels, category, query ->
-        filterChannelList(channels, category, query)
+        _selectedLiveCategory
+    ) { channels, category ->
+        filterChannelList(channels, category)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Filtered Movies
+    // Filtered Movies (Isolated from search queries)
     val filteredMovieChannels: StateFlow<List<ChannelItem>> = combine(
         movieChannels,
-        _selectedMovieCategory,
-        _searchQuery
-    ) { channels, category, query ->
-        filterChannelList(channels, category, query)
+        _selectedMovieCategory
+    ) { channels, category ->
+        filterChannelList(channels, category)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Filtered Series
+    // Filtered Series (Isolated from search queries)
     val filteredSeriesChannels: StateFlow<List<ChannelItem>> = combine(
         seriesChannels,
-        _selectedSeriesCategory,
-        _searchQuery
-    ) { channels, category, query ->
-        filterChannelList(channels, category, query)
+        _selectedSeriesCategory
+    ) { channels, category ->
+        filterChannelList(channels, category)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Global search results across all channels
+    // Global search results across all channels (Used by Search Tab)
     val globalSearchResults: StateFlow<List<ChannelItem>> = combine(
         allChannels,
         _searchQuery
     ) { channels, query ->
-        if (query.isBlank()) emptyList()
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) emptyList()
         else channels.filter {
-            it.name.contains(query, ignoreCase = true) ||
-            it.groupTitle.contains(query, ignoreCase = true) ||
-            it.currentProgram?.contains(query, ignoreCase = true) == true
+            it.name.contains(trimmed, ignoreCase = true) ||
+            it.groupTitle.contains(trimmed, ignoreCase = true) ||
+            it.currentProgram?.contains(trimmed, ignoreCase = true) == true
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private fun filterChannelList(list: List<ChannelItem>, category: String, query: String): List<ChannelItem> {
-        val baseList = when (category) {
+    private fun filterChannelList(list: List<ChannelItem>, category: String): List<ChannelItem> {
+        return when (category) {
             "Tümü", "All" -> list
             "Favoriler", "Favorites" -> list.filter { it.isFavorite }
             else -> list.filter { it.groupTitle.equals(category, ignoreCase = true) }
-        }
-        return if (query.isBlank()) {
-            baseList
-        } else {
-            baseList.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                it.groupTitle.contains(query, ignoreCase = true) ||
-                it.currentProgram?.contains(query, ignoreCase = true) == true
-            }
         }
     }
 
@@ -409,18 +398,32 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun refreshPlaylist(playlist: PlaylistItem) {
-        val url = playlist.urlOrPath
-        if (playlist.isLocalFile) return
+    fun refreshPlaylist(playlistId: Long) {
         _importState.value = ImportState.Loading
         viewModelScope.launch {
-            val result = repository.importPlaylistFromUrl(playlist.name, url)
+            val result = repository.refreshPlaylist(playlistId)
             result.onSuccess { count ->
-                _importState.value = ImportState.Success("${playlist.name} güncellendi! Toplam $count içerik yenilendi.")
+                _importState.value = ImportState.Success("Liste başarıyla yenilendi! Toplam $count içerik güncellendi.")
             }.onFailure { error ->
-                _importState.value = ImportState.Error("Liste güncellenemedi: ${error.localizedMessage}")
+                _importState.value = ImportState.Error("Liste yenilenemedi: ${error.localizedMessage}")
             }
         }
+    }
+
+    fun updatePlaylist(playlistId: Long, name: String, url: String) {
+        _importState.value = ImportState.Loading
+        viewModelScope.launch {
+            val result = repository.updatePlaylist(playlistId, name, url)
+            result.onSuccess { count ->
+                _importState.value = ImportState.Success("Liste başarıyla güncellendi! ($count içerik)")
+            }.onFailure { error ->
+                _importState.value = ImportState.Error("Güncelleme başarısız: ${error.localizedMessage}")
+            }
+        }
+    }
+
+    fun clearSearchQuery() {
+        _searchQuery.value = ""
     }
 
     fun clearAllData() {

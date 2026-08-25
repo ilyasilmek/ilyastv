@@ -213,6 +213,110 @@ class IptvRepository(
         channelDao.clearWatchHistory()
     }
 
+    suspend fun refreshPlaylist(playlistId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val playlist = playlistDao.getPlaylistById(playlistId)
+                ?: return@withContext Result.failure(Exception("Oynatma listesi bulunamadı."))
+
+            val url = playlist.urlOrPath
+            if (playlist.isLocalFile || !url.startsWith("http", ignoreCase = true)) {
+                return@withContext Result.failure(Exception("Yerel dosya kaynakları yalnızca yeni dosya seçilerek güncellenebilir."))
+            }
+
+            val parseResult = M3uParser.parseFromUrl(url, playlistId)
+            val channels = parseResult.channels
+            if (channels.isEmpty()) {
+                return@withContext Result.failure(Exception("Sunucudan geçerli kanal verisi alınamadı."))
+            }
+
+            val liveCount = channels.count { it.streamType == "LIVE" }
+            val movieCount = channels.count { it.streamType == "MOVIE" }
+            val seriesCount = channels.count { it.streamType == "SERIES" }
+            val acc = parseResult.accountInfo
+
+            // Remove old channels for this playlist and insert fresh ones
+            channelDao.deleteChannelsByPlaylist(playlistId)
+            val channelsWithPlaylist = channels.map { it.copy(playlistId = playlistId) }
+            channelDao.insertChannels(channelsWithPlaylist)
+
+            val updatedPlaylist = playlist.copy(
+                channelCount = channels.size,
+                liveCount = liveCount,
+                movieCount = movieCount,
+                seriesCount = seriesCount,
+                username = acc.username ?: playlist.username,
+                serverHost = acc.serverHost ?: playlist.serverHost,
+                status = acc.status ?: playlist.status,
+                expDateTimestamp = acc.expDateTimestamp ?: playlist.expDateTimestamp,
+                maxConnections = acc.maxConnections ?: playlist.maxConnections,
+                activeConnections = acc.activeConnections ?: playlist.activeConnections,
+                isTrial = acc.isTrial
+            )
+            playlistDao.updatePlaylist(updatedPlaylist)
+
+            Result.success(channels.size)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updatePlaylist(playlistId: Long, newName: String, newUrl: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val playlist = playlistDao.getPlaylistById(playlistId)
+                ?: return@withContext Result.failure(Exception("Oynatma listesi bulunamadı."))
+
+            val cleanedUrl = newUrl.trim()
+            val cleanedName = newName.trim().ifBlank { playlist.name }
+
+            val urlChanged = cleanedUrl.isNotBlank() && cleanedUrl != playlist.urlOrPath && cleanedUrl.startsWith("http", ignoreCase = true)
+
+            if (urlChanged) {
+                val parseResult = M3uParser.parseFromUrl(cleanedUrl, playlistId)
+                val channels = parseResult.channels
+                if (channels.isEmpty()) {
+                    return@withContext Result.failure(Exception("Yeni linkte geçerli kanal bulunamadı."))
+                }
+
+                val liveCount = channels.count { it.streamType == "LIVE" }
+                val movieCount = channels.count { it.streamType == "MOVIE" }
+                val seriesCount = channels.count { it.streamType == "SERIES" }
+                val acc = parseResult.accountInfo
+
+                channelDao.deleteChannelsByPlaylist(playlistId)
+                val channelsWithPlaylist = channels.map { it.copy(playlistId = playlistId) }
+                channelDao.insertChannels(channelsWithPlaylist)
+
+                val updatedPlaylist = playlist.copy(
+                    name = cleanedName,
+                    urlOrPath = cleanedUrl,
+                    isLocalFile = false,
+                    channelCount = channels.size,
+                    liveCount = liveCount,
+                    movieCount = movieCount,
+                    seriesCount = seriesCount,
+                    username = acc.username ?: playlist.username,
+                    serverHost = acc.serverHost ?: playlist.serverHost,
+                    status = acc.status ?: playlist.status,
+                    expDateTimestamp = acc.expDateTimestamp ?: playlist.expDateTimestamp,
+                    maxConnections = acc.maxConnections ?: playlist.maxConnections,
+                    activeConnections = acc.activeConnections ?: playlist.activeConnections,
+                    isTrial = acc.isTrial
+                )
+                playlistDao.updatePlaylist(updatedPlaylist)
+                Result.success(channels.size)
+            } else {
+                val updatedPlaylist = playlist.copy(
+                    name = cleanedName,
+                    urlOrPath = if (cleanedUrl.isNotBlank()) cleanedUrl else playlist.urlOrPath
+                )
+                playlistDao.updatePlaylist(updatedPlaylist)
+                Result.success(playlist.channelCount)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun deletePlaylist(playlistId: Long) = withContext(Dispatchers.IO) {
         channelDao.deleteChannelsByPlaylist(playlistId)
         playlistDao.deletePlaylistById(playlistId)
