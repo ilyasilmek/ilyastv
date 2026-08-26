@@ -205,6 +205,14 @@ class IptvRepository(
         channelDao.resetPlaybackProgress(channelId)
     }
 
+    suspend fun removeFromWatchHistory(channelId: Long) = withContext(Dispatchers.IO) {
+        channelDao.removeFromWatchHistory(channelId)
+    }
+
+    suspend fun moveWatchHistoryToTop(channelId: Long) = withContext(Dispatchers.IO) {
+        channelDao.moveWatchHistoryToTop(channelId)
+    }
+
     suspend fun clearAllFavorites() = withContext(Dispatchers.IO) {
         channelDao.clearAllFavorites()
     }

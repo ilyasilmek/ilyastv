@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,13 +29,19 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Subject
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +54,7 @@ import com.example.ui.components.ChannelEpgCard
 import com.example.ui.components.ChannelGridCard
 import com.example.ui.components.ChannelListCard
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.HistoryItemManageDialog
 import com.example.ui.components.tvFocusable
 import com.example.ui.theme.StreamFlowLiveRed
 import com.example.ui.theme.ViewModeSetting
@@ -58,6 +67,9 @@ fun LiveTvScreen(
     selectedCategory: String,
     viewMode: ViewModeSetting,
     watchHistoryList: List<ChannelItem> = emptyList(),
+    onRemoveFromHistory: (Long) -> Unit = {},
+    onMoveToTopHistory: (Long) -> Unit = {},
+    onResetProgress: (Long) -> Unit = {},
     onViewModeChange: (ViewModeSetting) -> Unit,
     onSelectCategory: (String) -> Unit,
     onChannelClick: (ChannelItem) -> Unit,
@@ -75,6 +87,21 @@ fun LiveTvScreen(
             modifier = modifier
         )
         return
+    }
+
+    var selectedHistoryChannel by remember { mutableStateOf<ChannelItem?>(null) }
+
+    // History Item Management Dialog (Sil, Başa Taşı, Favorilere Ekle/Çıkar, Oynat)
+    selectedHistoryChannel?.let { channel ->
+        HistoryItemManageDialog(
+            channel = channel,
+            onDismiss = { selectedHistoryChannel = null },
+            onPlay = { onChannelClick(channel) },
+            onMoveToTop = { onMoveToTopHistory(channel.id) },
+            onResetProgress = { onResetProgress(channel.id) },
+            onToggleFavorite = { onToggleFavorite(channel) },
+            onDeleteFromHistory = { onRemoveFromHistory(channel.id) }
+        )
     }
 
     val liveHistory = watchHistoryList.filter { it.streamType == "LIVE" }
@@ -270,7 +297,8 @@ fun LiveTvScreen(
                         item {
                             RecentlyWatchedChannelsRow(
                                 channels = liveHistory,
-                                onChannelClick = onChannelClick
+                                onChannelClick = onChannelClick,
+                                onChannelLongClick = { selectedHistoryChannel = it }
                             )
                         }
                     }
@@ -298,7 +326,8 @@ fun LiveTvScreen(
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             RecentlyWatchedChannelsRow(
                                 channels = liveHistory,
-                                onChannelClick = onChannelClick
+                                onChannelClick = onChannelClick,
+                                onChannelLongClick = { selectedHistoryChannel = it }
                             )
                         }
                     }
@@ -323,7 +352,8 @@ fun LiveTvScreen(
                         item {
                             RecentlyWatchedChannelsRow(
                                 channels = liveHistory,
-                                onChannelClick = onChannelClick
+                                onChannelClick = onChannelClick,
+                                onChannelLongClick = { selectedHistoryChannel = it }
                             )
                         }
                     }
@@ -343,28 +373,41 @@ fun LiveTvScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RecentlyWatchedChannelsRow(
     channels: List<ChannelItem>,
-    onChannelClick: (ChannelItem) -> Unit
+    onChannelClick: (ChannelItem) -> Unit,
+    onChannelLongClick: (ChannelItem) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(bottom = 8.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.History,
-                contentDescription = null,
-                tint = StreamFlowLiveRed,
-                modifier = Modifier.size(18.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = StreamFlowLiveRed,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Son İzlenen Kanallar",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Text(
-                text = "Son İzlenen Kanallar",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                text = "Düzenle (Basılı Tutun)",
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -372,18 +415,21 @@ private fun RecentlyWatchedChannelsRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            items(channels.take(8), key = { it.id }) { ch ->
+            items(channels.take(12), key = { it.id }) { ch ->
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     modifier = Modifier
-                        .width(160.dp)
+                        .width(175.dp)
                         .tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onChannelClick(ch) })
-                        .clickable { onChannelClick(ch) }
+                        .combinedClickable(
+                            onClick = { onChannelClick(ch) },
+                            onLongClick = { onChannelLongClick(ch) }
+                        )
                 ) {
                     Row(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -414,6 +460,17 @@ private fun RecentlyWatchedChannelsRow(
                                 color = StreamFlowLiveRed,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        IconButton(
+                            onClick = { onChannelLongClick(ch) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Seçenekler",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }

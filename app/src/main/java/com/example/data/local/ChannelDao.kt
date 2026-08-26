@@ -84,6 +84,12 @@ interface ChannelDao {
     @Query("UPDATE channels SET playbackPositionMs = 0 WHERE id = :channelId")
     suspend fun resetPlaybackProgress(channelId: Long)
 
+    @Query("UPDATE channels SET playbackPositionMs = 0, lastPlayedTimestamp = 0 WHERE id = :channelId")
+    suspend fun removeFromWatchHistory(channelId: Long)
+
+    @Query("UPDATE channels SET lastPlayedTimestamp = :timestamp WHERE id = :channelId")
+    suspend fun moveWatchHistoryToTop(channelId: Long, timestamp: Long = System.currentTimeMillis())
+
     @Query("UPDATE channels SET isFavorite = 0")
     suspend fun clearAllFavorites()
 

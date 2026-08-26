@@ -398,6 +398,18 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun removeFromWatchHistory(channelId: Long) {
+        viewModelScope.launch {
+            repository.removeFromWatchHistory(channelId)
+        }
+    }
+
+    fun moveWatchHistoryToTop(channelId: Long) {
+        viewModelScope.launch {
+            repository.moveWatchHistoryToTop(channelId)
+        }
+    }
+
     fun refreshPlaylist(playlistId: Long) {
         _importState.value = ImportState.Loading
         viewModelScope.launch {

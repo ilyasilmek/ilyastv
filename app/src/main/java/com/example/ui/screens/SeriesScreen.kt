@@ -34,6 +34,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +51,7 @@ import com.example.ui.components.ChannelGridCard
 import com.example.ui.components.ChannelListCard
 import com.example.ui.components.ContinueWatchingCard
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.HistoryItemManageDialog
 import com.example.ui.components.tvFocusable
 import com.example.ui.theme.ViewModeSetting
 
@@ -59,6 +64,8 @@ fun SeriesScreen(
     viewMode: ViewModeSetting,
     continueWatchingList: List<ChannelItem> = emptyList(),
     onResetProgress: (Long) -> Unit = {},
+    onRemoveFromHistory: (Long) -> Unit = {},
+    onMoveToTopHistory: (Long) -> Unit = {},
     onViewModeChange: (ViewModeSetting) -> Unit,
     onSelectCategory: (String) -> Unit,
     onSeriesClick: (ChannelItem) -> Unit,
@@ -76,6 +83,21 @@ fun SeriesScreen(
             modifier = modifier
         )
         return
+    }
+
+    var selectedManageSeries by remember { mutableStateOf<ChannelItem?>(null) }
+
+    // History & Continue Watching Management Dialog
+    selectedManageSeries?.let { channel ->
+        HistoryItemManageDialog(
+            channel = channel,
+            onDismiss = { selectedManageSeries = null },
+            onPlay = { onSeriesClick(channel) },
+            onMoveToTop = { onMoveToTopHistory(channel.id) },
+            onResetProgress = { onResetProgress(channel.id) },
+            onToggleFavorite = { onToggleFavorite(channel) },
+            onDeleteFromHistory = { onRemoveFromHistory(channel.id) }
+        )
     }
 
     val seriesContinueWatching = continueWatchingList.filter { it.streamType == "SERIES" }
@@ -271,7 +293,8 @@ fun SeriesScreen(
                             ContinueWatchingSection(
                                 items = seriesContinueWatching,
                                 onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress
+                                onResetProgress = onResetProgress,
+                                onManageItem = { selectedManageSeries = it }
                             )
                         }
                     }
@@ -300,7 +323,8 @@ fun SeriesScreen(
                             ContinueWatchingSection(
                                 items = seriesContinueWatching,
                                 onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress
+                                onResetProgress = onResetProgress,
+                                onManageItem = { selectedManageSeries = it }
                             )
                         }
                     }
@@ -326,7 +350,8 @@ fun SeriesScreen(
                             ContinueWatchingSection(
                                 items = seriesContinueWatching,
                                 onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress
+                                onResetProgress = onResetProgress,
+                                onManageItem = { selectedManageSeries = it }
                             )
                         }
                     }
@@ -350,25 +375,37 @@ fun SeriesScreen(
 private fun ContinueWatchingSection(
     items: List<ChannelItem>,
     onSeriesClick: (ChannelItem) -> Unit,
-    onResetProgress: (Long) -> Unit
+    onResetProgress: (Long) -> Unit,
+    onManageItem: (ChannelItem) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(bottom = 8.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.History,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Kaldığın Yerden Devam Et",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Text(
-                text = "Kaldığın Yerden Devam Et",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                text = "Düzenle (Basılı Tutun)",
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -380,7 +417,9 @@ private fun ContinueWatchingSection(
                 ContinueWatchingCard(
                     channel = item,
                     onClick = { onSeriesClick(item) },
-                    onResetProgress = { onResetProgress(item.id) }
+                    onResetProgress = { onResetProgress(item.id) },
+                    onLongClick = { onManageItem(item) },
+                    onOptionsClick = { onManageItem(item) }
                 )
             }
         }

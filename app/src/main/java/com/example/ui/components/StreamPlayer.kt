@@ -13,6 +13,7 @@ import android.media.AudioManager
 import android.net.Uri
 import android.provider.Settings
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -333,8 +334,13 @@ fun StreamPlayer(
         }
     }
 
-    // Player event listener
+    // Player event listener & Screen wake-lock (keep screen on during playback)
     DisposableEffect(exoPlayer) {
+        val activity = context.findActivity()
+        try {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } catch (_: Exception) {}
+
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
@@ -375,6 +381,9 @@ fun StreamPlayer(
         exoPlayer.addListener(listener)
 
         onDispose {
+            try {
+                activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } catch (_: Exception) {}
             try {
                 val finalPos = exoPlayer.currentPosition.coerceAtLeast(0L)
                 val finalDur = exoPlayer.duration.coerceAtLeast(0L)
@@ -497,6 +506,7 @@ fun StreamPlayer(
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
+                    keepScreenOn = true
                     this.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -506,6 +516,7 @@ fun StreamPlayer(
             },
             update = { playerView ->
                 playerView.resizeMode = resizeMode
+                playerView.keepScreenOn = true
             },
             modifier = Modifier.fillMaxSize()
         )

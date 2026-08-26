@@ -1,8 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tv
@@ -598,11 +601,14 @@ fun ChannelListCard(
 /**
  * 4. CONTINUE WATCHING HERO CARD (Kaldığın Yerden Devam Et Kartı)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContinueWatchingCard(
     channel: ChannelItem,
     onClick: () -> Unit,
     onResetProgress: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    onOptionsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val progress = if (channel.durationMs > 0) {
@@ -619,6 +625,10 @@ fun ContinueWatchingCard(
         modifier = modifier
             .width(220.dp)
             .tvFocusable(shape = RoundedCornerShape(16.dp), onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onLongClick?.invoke() }
+            )
             .testTag("continue_watching_${channel.id}")
     ) {
         Column {
@@ -681,6 +691,25 @@ fun ContinueWatchingCard(
                         tint = Color.White,
                         modifier = Modifier.size(22.dp)
                     )
+                }
+
+                // More options floating button
+                if (onOptionsClick != null || onLongClick != null) {
+                    IconButton(
+                        onClick = { (onOptionsClick ?: onLongClick)?.invoke() },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Seçenekler",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
 
                 // Progress Bar at bottom of thumbnail
