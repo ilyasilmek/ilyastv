@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
@@ -59,7 +60,8 @@ fun HistoryItemManageDialog(
     onMoveToTop: () -> Unit,
     onResetProgress: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onDeleteFromHistory: () -> Unit
+    onDeleteFromHistory: () -> Unit,
+    onDownload: (() -> Unit)? = null
 ) {
     val isMovieOrSeries = channel.streamType == "MOVIE" || channel.streamType == "VOD" || channel.streamType == "SERIES"
     val hasProgress = channel.playbackPositionMs > 0
@@ -232,7 +234,21 @@ fun HistoryItemManageDialog(
                         }
                     )
 
-                    // 4. Reset Progress (if VOD)
+                    // 4. Download for Offline Watching (if VOD)
+                    if (isMovieOrSeries && onDownload != null) {
+                        HistoryActionRow(
+                            icon = Icons.Default.Download,
+                            title = "Cihaza İndir (Çevrimdışı İzle)",
+                            subtitle = "İnternetsiz izlemek için videoyu cihazına kaydet",
+                            tint = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                onDownload()
+                                onDismiss()
+                            }
+                        )
+                    }
+
+                    // 5. Reset Progress (if VOD)
                     if (isMovieOrSeries && hasProgress) {
                         HistoryActionRow(
                             icon = Icons.Default.RestartAlt,
@@ -246,7 +262,7 @@ fun HistoryItemManageDialog(
                         )
                     }
 
-                    // 5. Remove from History
+                    // 6. Remove from History
                     HistoryActionRow(
                         icon = Icons.Default.DeleteOutline,
                         title = "Son İzlenenlerden Kaldır (Sil)",

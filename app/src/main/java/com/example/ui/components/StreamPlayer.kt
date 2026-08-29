@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FormatListBulleted
@@ -181,6 +182,7 @@ fun StreamPlayer(
     onSelectChannel: (ChannelItem) -> Unit,
     onNextChannel: () -> Unit,
     onPreviousChannel: () -> Unit,
+    onDownloadChannel: ((ChannelItem) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1088,6 +1090,24 @@ fun StreamPlayer(
                                 contentDescription = "PiP Modu",
                                 tint = Color.White
                             )
+                        }
+
+                        // Download Button (for Movies and Series)
+                        if (channel.streamType != "LIVE" && !channel.streamUrl.startsWith("file://") && onDownloadChannel != null) {
+                            IconButton(
+                                onClick = { onDownloadChannel(channel) },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                    .tvFocusable(shape = CircleShape) { onDownloadChannel(channel) }
+                                    .testTag("player_download_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = "İndir",
+                                    tint = Color.White
+                                )
+                            }
                         }
 
                         // Favorite Button

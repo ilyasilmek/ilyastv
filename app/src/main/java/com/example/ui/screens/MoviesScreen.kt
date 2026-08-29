@@ -67,6 +67,7 @@ fun MoviesScreen(
     onResetProgress: (Long) -> Unit = {},
     onRemoveFromHistory: (Long) -> Unit = {},
     onMoveToTopHistory: (Long) -> Unit = {},
+    onDownload: (ChannelItem) -> Unit = {},
     onViewModeChange: (ViewModeSetting) -> Unit,
     onSelectCategory: (String) -> Unit,
     onMovieClick: (ChannelItem) -> Unit,
@@ -97,7 +98,8 @@ fun MoviesScreen(
             onMoveToTop = { onMoveToTopHistory(channel.id) },
             onResetProgress = { onResetProgress(channel.id) },
             onToggleFavorite = { onToggleFavorite(channel) },
-            onDeleteFromHistory = { onRemoveFromHistory(channel.id) }
+            onDeleteFromHistory = { onRemoveFromHistory(channel.id) },
+            onDownload = { onDownload(channel) }
         )
     }
 

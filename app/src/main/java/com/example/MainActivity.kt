@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.util.Rational
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -34,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -63,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +77,7 @@ import com.example.ui.components.LegalDisclaimerDialog
 import com.example.ui.components.StreamPlayer
 import com.example.ui.components.tvFocusable
 import com.example.ui.screens.AccountScreen
+import com.example.ui.screens.DownloadsScreen
 import com.example.ui.screens.LiveTvScreen
 import com.example.ui.screens.MoviesScreen
 import com.example.ui.screens.SearchScreen
@@ -86,8 +91,9 @@ enum class NavigationTab(val title: String, val activeIcon: ImageVector, val ina
     LIVE_TV("Canlı TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
     MOVIES("Filmler", Icons.Filled.Movie, Icons.Outlined.Movie),
     SERIES("Diziler", Icons.Filled.Tv, Icons.Outlined.Tv),
+    DOWNLOADS("İndirilenler", Icons.Filled.Download, Icons.Outlined.Download),
     SEARCH("Arama", Icons.Filled.Search, Icons.Outlined.Search),
-    ACCOUNT("Hesap & Liste", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong)
+    ACCOUNT("Hesap", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong)
 }
 
 class MainActivity : ComponentActivity() {
@@ -174,6 +180,18 @@ fun StreamFlowApp(
     val themeSetting by viewModel.themeSetting.collectAsStateWithLifecycle()
     val viewModeSetting by viewModel.viewModeSetting.collectAsStateWithLifecycle()
 
+    val allDownloads by viewModel.allDownloads.collectAsStateWithLifecycle()
+    val storageStats by viewModel.storageStats.collectAsStateWithLifecycle()
+    val downloadToastMessage by viewModel.downloadToastMessage.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    LaunchedEffect(downloadToastMessage) {
+        downloadToastMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            viewModel.clearDownloadToast()
+        }
+    }
+
     var currentTab by remember { mutableStateOf(NavigationTab.LIVE_TV) }
 
     val activePlayingChannel = currentlyPlayingChannel
@@ -227,7 +245,8 @@ fun StreamFlowApp(
             onToggleFavorite = { viewModel.toggleFavorite(it) },
             onSelectChannel = { viewModel.playChannel(it) },
             onNextChannel = { viewModel.playNextChannel() },
-            onPreviousChannel = { viewModel.playPreviousChannel() }
+            onPreviousChannel = { viewModel.playPreviousChannel() },
+            onDownloadChannel = { viewModel.downloadChannel(it) }
         )
     } else {
         Scaffold(
@@ -475,6 +494,7 @@ fun StreamFlowApp(
                                 onResetProgress = { viewModel.resetPlaybackProgress(it) },
                                 onRemoveFromHistory = { viewModel.removeFromWatchHistory(it) },
                                 onMoveToTopHistory = { viewModel.moveWatchHistoryToTop(it) },
+                                onDownload = { viewModel.downloadChannel(it) },
                                 onViewModeChange = { viewModel.setViewModeSetting(it) },
                                 onSelectCategory = { viewModel.selectMovieCategory(it) },
                                 onMovieClick = { viewModel.playChannel(it) },
@@ -493,11 +513,21 @@ fun StreamFlowApp(
                                 onResetProgress = { viewModel.resetPlaybackProgress(it) },
                                 onRemoveFromHistory = { viewModel.removeFromWatchHistory(it) },
                                 onMoveToTopHistory = { viewModel.moveWatchHistoryToTop(it) },
+                                onDownload = { viewModel.downloadChannel(it) },
                                 onViewModeChange = { viewModel.setViewModeSetting(it) },
                                 onSelectCategory = { viewModel.selectSeriesCategory(it) },
                                 onSeriesClick = { viewModel.playChannel(it) },
                                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                                 onNavigateToAdd = { currentTab = NavigationTab.ACCOUNT }
+                            )
+                        }
+                        NavigationTab.DOWNLOADS -> {
+                            DownloadsScreen(
+                                downloads = allDownloads,
+                                storageStats = storageStats,
+                                onPlayDownload = { viewModel.playDownloadedItem(it) },
+                                onDeleteDownload = { viewModel.deleteDownload(it) },
+                                onCancelDownload = { viewModel.cancelDownload(it) }
                             )
                         }
                         NavigationTab.SEARCH -> {

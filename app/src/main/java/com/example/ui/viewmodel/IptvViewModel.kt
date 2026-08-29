@@ -7,17 +7,23 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.model.AccountInfo
 import com.example.data.model.ChannelItem
+import com.example.data.model.DownloadItem
+import com.example.data.model.DownloadStatus
 import com.example.data.model.PlaylistItem
 import com.example.data.parser.M3uParser
+import com.example.data.repository.DownloadRepository
 import com.example.data.repository.IptvRepository
+import com.example.data.repository.StorageStats
 import com.example.ui.theme.AppThemeSetting
 import com.example.ui.theme.ViewModeSetting
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.InputStream
 
@@ -37,6 +43,7 @@ enum class BufferOption(val label: String, val description: String) {
 class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: IptvRepository
+    private val downloadRepository: DownloadRepository
     private val prefs = application.getSharedPreferences("ilyastv_prefs", Context.MODE_PRIVATE)
 
     private val _hasAcceptedDisclaimer = MutableStateFlow(prefs.getBoolean("disclaimer_accepted", false))
@@ -45,11 +52,30 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchHistory = MutableStateFlow<List<String>>(loadSearchHistory())
     val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
 
+    private val _downloadToastMessage = MutableStateFlow<String?>(null)
+    val downloadToastMessage: StateFlow<String?> = _downloadToastMessage.asStateFlow()
+
+    private val _storageStats = MutableStateFlow(StorageStats(0L, 0L, 0L))
+    val storageStats: StateFlow<StorageStats> = _storageStats.asStateFlow()
+
     init {
         val db = AppDatabase.getDatabase(application)
         repository = IptvRepository(db.playlistDao(), db.channelDao())
+        downloadRepository = DownloadRepository(application, db.downloadDao())
+        
         viewModelScope.launch {
             repository.ensureDefaultDataLoaded()
+        }
+
+        // Periodic downloader progress syncer
+        viewModelScope.launch {
+            while (isActive) {
+                try {
+                    downloadRepository.syncActiveDownloadsProgress()
+                    _storageStats.value = downloadRepository.getStorageStats()
+                } catch (_: Exception) {}
+                delay(1800)
+            }
         }
     }
 
@@ -462,6 +488,49 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setExternalPlayerEnabled(enabled: Boolean) {
         _isExternalPlayerEnabled.value = enabled
+    }
+
+    val allDownloads: StateFlow<List<DownloadItem>> = downloadRepository.allDownloads
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val completedDownloads: StateFlow<List<DownloadItem>> = downloadRepository.completedDownloads
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun clearDownloadToast() {
+        _downloadToastMessage.value = null
+    }
+
+    fun downloadChannel(channel: ChannelItem) {
+        if (channel.streamType == "LIVE") {
+            _downloadToastMessage.value = "Canlı TV yayınları indirilemez. Yalnızca Film ve Diziler indirilebilir."
+            return
+        }
+        viewModelScope.launch {
+            val result = downloadRepository.startDownload(channel)
+            result.onSuccess {
+                _downloadToastMessage.value = "“${channel.name}” indirmesi başlatıldı."
+            }.onFailure { error ->
+                _downloadToastMessage.value = "İndirme başlatılamadı: ${error.localizedMessage}"
+            }
+        }
+    }
+
+    fun deleteDownload(item: DownloadItem) {
+        viewModelScope.launch {
+            downloadRepository.deleteDownload(item)
+            _downloadToastMessage.value = "“${item.title}” indirmesi silindi."
+        }
+    }
+
+    fun cancelDownload(item: DownloadItem) {
+        viewModelScope.launch {
+            downloadRepository.cancelDownload(item)
+            _downloadToastMessage.value = "“${item.title}” indirmesi iptal edildi."
+        }
+    }
+
+    fun playDownloadedItem(item: DownloadItem) {
+        playChannel(item.toChannelItem())
     }
 
     fun clearImportStatus() {

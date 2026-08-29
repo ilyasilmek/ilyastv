@@ -5,16 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.model.ChannelItem
+import com.example.data.model.DownloadItem
 import com.example.data.model.PlaylistItem
 
 @Database(
-    entities = [PlaylistItem::class, ChannelItem::class],
-    version = 2,
+    entities = [PlaylistItem::class, ChannelItem::class, DownloadItem::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun channelDao(): ChannelDao
+    abstract fun downloadDao(): DownloadDao
 
     companion object {
         @Volatile

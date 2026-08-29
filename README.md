@@ -12,6 +12,15 @@
 
 ## ✨ Öne Çıkan Özellikler
 
+- **📥 VOD İndirme Yöneticisi & Çevrimdışı İzleme (Offline Download):**
+  - Film ve Dizi içeriklerini arka planda cihazınıza indirebilme (`Android DownloadManager`).
+  - İnternet bağlantınız olmadığında (uçakta, seyahatte, kotasızken) indirilen içerikleri çevrimdışı oynatma.
+  - Canlı indirme yüzdesi, indirilen/toplam MB göstergesi ve cihaz depolama alanı grafiği.
+  - İndirmeleri filtreleme (Tümü, Filmler, Diziler, İnenler, Tamamlananlar) ve tek tıkla silme/iptal etme.
+- **💡 Ekran Uyanık Kalma Desteği (Keep-Screen-On):**
+  - Canlı TV kanalı veya film/dizi izlenirken cihaz ekranının uyku moduna geçip kararması engellenir; kesintisiz seyir keyfi sunulur.
+- **🛠️ Gelişmiş Son İzlenenler & Geçmiş Yönetimi:**
+  - Son izlenen her kanal veya VOD için seçenekler menüsü: **"En Başa Taşı"**, **"Listeden Sil"**, **"İlerlemeyi Sıfırla (00:00)"**, **"Cihaza İndir"** ve **"Favorilere Ekle"**.
 - **📺 Canlı TV (Live TV):** EPG TV rehberi, kategori filtreleme ve kesintisiz canlı yayın deneyimi.
 - **🎬 Film & VOD Kütüphanesi:** Afişler, açıklamalar, süre göstergeleri ve kategori filtreleri.
 - **🍿 Dizi (Series) Desteği:** Sezon ve bölümlere göre organize edilmiş geniş dizi arşivi.
@@ -30,6 +39,7 @@
   - **Oynatma Hızı:** 0.5x ile 2.0x arasında hız seçimi.
   - **Uyku Zamanlayıcısı:** 15dk ile 120dk arası otomatik kapanma zamanlayıcısı.
   - **En-Boy Oranı:** Fit, Fill, Zoom, Sabit Boyut geçişleri.
+  - **Cihaza İndir Butonu:** Oynatıcı içinden tek dokunuşla indirme başlatma.
 - **🎮 Android TV & D-Pad Kumanda Desteği:** Android TV ve TV kutuları için tam kumanda tuşları (Yukarı/Aşağı kanal değiştirme, Sağ/Sol sarma, Ortadaki tuşla oynatma/duraklatma) ve görsel odak efektleri.
 - **⭐ Favori Yönetimi:** Hızlı erişim için beğendiğiniz kanalları veya yayınları tek tıkla favorilere ekleme (Yerel Room veritabanında saklanır).
 - **🔍 Akıllı Arama & Filtreleme:** Yüzlerce kanal ve içerik arasından anlık arama yapabilme.
@@ -42,8 +52,9 @@
 1. **Canlı TV (Live TV):** Tüm TV kanallarının kategori bazlı listesi, yayın durumu ve canlı önizleme.
 2. **Filmler (Movies):** Popüler ve kategoriye ayrılmış sinema filmleri.
 3. **Diziler (Series):** Dizi bölümlerini takip edebileceğiniz içerik ekranı.
-4. **Arama (Search):** Tüm kütüphanede başlık veya kategori bazlı filtreleme.
-5. **Hesap / Oynatma Listesi (Account):** Aktif playlist yönetimi, yeni URL ekleme ve çalma listesi istatistikleri.
+4. **İndirilenler (Downloads):** İndirilen ve indirilmekte olan VOD içeriklerini çevrimdışı izleme ve yönetme ekranı.
+5. **Arama (Search):** Tüm kütüphanede başlık veya kategori bazlı filtreleme.
+6. **Hesap / Oynatma Listesi (Account):** Aktif playlist yönetimi, yeni URL/Xtream ekleme, tema ve arabellek ayarları.
 
 ---
 
