@@ -1,66 +1,95 @@
 # 📺 İlyasTV - Modern Android IPTV & Medya Oynatıcı
 
-![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Android](https://img.shields.io/badge/Platform-Android_8.0+-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Language-Kotlin_2.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20(M3)-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
 ![ExoPlayer](https://img.shields.io/badge/Player-Media3%20ExoPlayer-E53935?style=for-the-badge)
+![Room Database](https://img.shields.io/badge/Database-Room%20(KSP)-47A248?style=for-the-badge)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
-**İlyasTV**, Canlı TV kanalları, VOD filmler ve diziler için tasarlanmış yüksek performanslı, modern ve kullanıcı dostu bir Android IPTV oynatıcı uygulamasıdır. Material Design 3 ilkeleriyle tamamen **Jetpack Compose** kullanılarak geliştirilmiştir.
+**İlyasTV**, Canlı TV kanalları, VOD sinema filmleri ve diziler için geliştirilmiş, yüksek performanslı, zengin özellikli ve modern bir Android IPTV oynatıcı uygulamasıdır. Material Design 3 ilkeleriyle tamamen **Jetpack Compose** kullanılarak tasarlanmıştır.
 
 ---
 
-## ✨ Öne Çıkan Özellikler
+## 🌟 Yeni Eklenen Premium Özellikler
 
-- **📥 VOD İndirme Yöneticisi & Çevrimdışı İzleme (Offline Download):**
-  - Film ve Dizi içeriklerini arka planda cihazınıza indirebilme (`Android DownloadManager`).
-  - İnternet bağlantınız olmadığında (uçakta, seyahatte, kotasızken) indirilen içerikleri çevrimdışı oynatma.
-  - Canlı indirme yüzdesi, indirilen/toplam MB göstergesi ve cihaz depolama alanı grafiği.
-  - İndirmeleri filtreleme (Tümü, Filmler, Diziler, İnenler, Tamamlananlar) ve tek tıkla silme/iptal etme.
+### 1. 🔴 Canlı Yayın Kaydı (PVR - Personal Video Recorder)
+* **Canlı Kayıt:** Canlı TV yayınlarını izlerken tek tıkla arka planda yerel depolamaya kaydetme (`.ts` / `.mp4`).
+* **Canlı REC Paneli:** Oynatıcı ekranında anlık geçen süre (00:00:00) ve kaydedilen toplam dosya boyutu (MB/GB) göstergesi.
+* **Kayıt Yönetimi & Çevrimdışı İzleme:** Tamamlanan PVR kayıtları otomatik olarak veritabanına işlenir ve *İndirilenler & Çevrimdışı* sekmesinden internetsiz oynatılabilir.
+
+### 2. ⏪ Catch-Up TV & Timeshift (Geçmiş Yayınları İzleme)
+* **Yayın Arşivi Desteği:** Xtream Codes ve HLS arşiv parametrelerini çözümleyerek geçmiş günlerin TV programlarını listeleme.
+* **Geçmiş Program Rehberi:** Oynatıcı üzerinden veya kanal menüsünden geçmiş programların saat ve başlıklarını görüntüleyip tek dokunuşla başlatabilme.
+
+### 3. 🌐 Çevrimiçi Altyazı Arama & İndirme (OpenSubtitles & SubDL)
+* **Dahili Altyazı Arama:** Film veya dizi izlerken internet üzerindeki altyazı veritabanlarında (OpenSubtitles, SubDL) anlık arama yapabilme.
+* **Çoklu Dil Desteği:** Türkçe, İngilizce, Almanca, Fransızca, İspanyolca ve onlarca dil seçeneği.
+* **Anında Senkronize Oynatma:** İndirilen `.srt` altyazı dosyası doğrudan ExoPlayer'a harici altyazı katmanı olarak eklenir.
+
+### 4. 🎬 TMDb Metadata & Film/Dizi Detayları
+* **Zengin İçerik Bilgileri:** Film ve diziler için yüksek çözünürlüklü afişler, arka plan görselleri, TMDb / IMDb puanları, yapım yılı, türler ve Türkçe konu özetleri.
+* **Detay Kartı:** Oynatıcı içindeki **Bilgi (ℹ️)** butonundan veya içerik ızgarasından detaylı yapım bilgilerine anında erişim.
+
+### 5. 🍿 Binge-Watch Modu (Dizi Maratonu Desteği)
+* **Jeneriği Atla (+85sn):** Dizi ve film başlangıçlarında beliren akıllı buton ile introyu tek tıkla atlama.
+* **Sonraki Bölüm Uyarısı & Otomatik Geçiş:** Bölümün son 30 saniyesinde çıkan *"Sonraki Bölüm [Şimdi Geç]"* kartı ve bölüm bittiğinde sıradaki bölüme otomatik geçiş.
+
+---
+
+## ✨ Tüm Temel Özellikler
+
+- **📥 VOD İndirme Yöneticisi & Çevrimdışı İzleme:**
+  - Film ve dizi içeriklerini arka planda cihaza indirme (`Android DownloadManager`).
+  - İnternet bağlantısı olmadan (çevrimdışı) depolamadan direkt oynatma.
+  - Canlı indirme yüzdesi, hız, kalan süre ve cihaz depolama analizi grafiği.
+  - Kategori filtreleri (Tümü, Filmler, Diziler, PVR Kayıtları, İnenler, Tamamlananlar).
 - **💡 Ekran Uyanık Kalma Desteği (Keep-Screen-On):**
-  - Canlı TV kanalı veya film/dizi izlenirken cihaz ekranının uyku moduna geçip kararması engellenir; kesintisiz seyir keyfi sunulur.
+  - Yayın veya film izlerken ekranın zaman aşımına uğrayıp kararmasını önler.
 - **🛠️ Gelişmiş Son İzlenenler & Geçmiş Yönetimi:**
-  - Son izlenen her kanal veya VOD için seçenekler menüsü: **"En Başa Taşı"**, **"Listeden Sil"**, **"İlerlemeyi Sıfırla (00:00)"**, **"Cihaza İndir"** ve **"Favorilere Ekle"**.
-- **📺 Canlı TV (Live TV):** EPG TV rehberi, kategori filtreleme ve kesintisiz canlı yayın deneyimi.
-- **🎬 Film & VOD Kütüphanesi:** Afişler, açıklamalar, süre göstergeleri ve kategori filtreleri.
-- **🍿 Dizi (Series) Desteği:** Sezon ve bölümlere göre organize edilmiş geniş dizi arşivi.
-- **🖼️ PiP (Picture-in-Picture) Modu:** Başka bir uygulamaya geçtiğinizde veya ana ekrana döndüğünüzde yayının arka planda küçük pencerede kesintisiz devam etmesi.
-- **🌐 Çoklu Playlist & Xtream Codes API Desteği:** 
-  - İster doğrudan M3U linki / dosyası ekleyin, ister Xtream Sunucu, Kullanıcı Adı ve Şifre ile giriş yapın.
-  - Birden fazla oynatma listesi ekleyip aralarında anında geçiş yapabilme.
-  - Hesap bitiş tarihi geri sayımı ve kullanıcı bilgisi gösterimi.
-- **⏯️ Geçmiş & "Kaldığın Yerden Devam Et" (Continue Watching):** 
-  - İzlemeyi yarıda bıraktığınız film ve dizilerin süresini otomatik kaydetme ve tek dokunuşla kaldığı dakikadan devam ettirme.
-  - Son izlenen canlı TV kanalları çubuğu.
-- **⚡ Gelişmiş Oynatıcı Kontrolleri (Media3 ExoPlayer):** 
+  - *"En Başa Taşı"*, *"Listeden Sil"*, *"İlerlemeyi Sıfırla (00:00)"*, *"Cihaza İndir"* ve *"Favorilere Ekle"*.
+- **📺 Canlı TV & EPG TV Rehberi:**
+  - Kategori bazlı kanal listeleme, canlı yayın durumu ve program akış bilgisi.
+- **🖼️ PiP (Picture-in-Picture) Modu:**
+  - Başka bir uygulamaya geçtiğinizde yayının arka planda küçük pencerede kesintisiz devam etmesi.
+- **🌐 Çoklu Playlist & Xtream Codes API Desteği:**
+  - M3U / M3U8 URL'si veya Xtream Codes (Sunucu URL, Kullanıcı Adı, Şifre) ile hızlı giriş.
+  - Birden fazla oynatma listesini hafızada tutma ve aralarında geçiş yapma.
+  - Hesap bitiş tarihi geri sayımı ve üyelik durumu.
+- **⏯️ Kaldığın Yerden Devam Et (Continue Watching):**
+  - Yarım bırakılan filmlerin/bölümlerin süresini kaydeder, tek tıkla kaldığı dakikadan devam ettirir.
+- **⚡ Gelişmiş Oynatıcı Kontrolleri (Media3 ExoPlayer):**
   - **Jest Kontrolleri:** Sol tarafta dikey kaydırma ile Parlaklık, sağ tarafta Ses kontrolü.
-  - **Hızlı İleri/Geri:** Ekrana çift dokunarak ±10 saniye sarma.
-  - **Çoklu Ses & Altyazı:** Birden fazla ses dili ve altyazı desteği.
-  - **Oynatma Hızı:** 0.5x ile 2.0x arasında hız seçimi.
-  - **Uyku Zamanlayıcısı:** 15dk ile 120dk arası otomatik kapanma zamanlayıcısı.
+  - **Hızlı Sarma:** Ekrana çift dokunarak ±10 saniye sarma.
+  - **Çoklu Ses & Altyazı:** Birden fazla ses dili ve altyazı izi seçimi.
+  - **Oynatma Hızı:** 0.5x ile 2.0x arasında esnek hız kontrolü.
+  - **Uyku Zamanlayıcısı:** 15dk - 120dk arası otomatik kapanma.
   - **En-Boy Oranı:** Fit, Fill, Zoom, Sabit Boyut geçişleri.
-  - **Cihaza İndir Butonu:** Oynatıcı içinden tek dokunuşla indirme başlatma.
-- **🎮 Android TV & D-Pad Kumanda Desteği:** Android TV ve TV kutuları için tam kumanda tuşları (Yukarı/Aşağı kanal değiştirme, Sağ/Sol sarma, Ortadaki tuşla oynatma/duraklatma) ve görsel odak efektleri.
-- **⭐ Favori Yönetimi:** Hızlı erişim için beğendiğiniz kanalları veya yayınları tek tıkla favorilere ekleme (Yerel Room veritabanında saklanır).
-- **🔍 Akıllı Arama & Filtreleme:** Yüzlerce kanal ve içerik arasından anlık arama yapabilme.
-- **🌓 Modern Arayüz (Material 3):** Göz yormayan şık karanlık/aydınlık tema, EPG Rehber, Afiş Izgarası ve Kompakt Liste görünüm modları.
+- **🎮 Android TV & D-Pad Kumanda Desteği:**
+  - Android TV ve TV kutuları için tam D-Pad kumanda tuşları ve odaklama efektleri.
+- **⭐ Favori Yönetimi:**
+  - Kanalları ve içerikleri favorilere ekleme (Yerel Room veritabanı).
+- **🔍 Akıllı Arama:**
+  - Tüm kütüphanede başlık veya kategoriye göre anlık filtreleme.
 
 ---
 
-## 📱 Ekranlar ve Uygulama Yapısı
+## 📱 Ekranlar ve Menü Yapısı
 
-1. **Canlı TV (Live TV):** Tüm TV kanallarının kategori bazlı listesi, yayın durumu ve canlı önizleme.
-2. **Filmler (Movies):** Popüler ve kategoriye ayrılmış sinema filmleri.
-3. **Diziler (Series):** Dizi bölümlerini takip edebileceğiniz içerik ekranı.
-4. **İndirilenler (Downloads):** İndirilen ve indirilmekte olan VOD içeriklerini çevrimdışı izleme ve yönetme ekranı.
-5. **Arama (Search):** Tüm kütüphanede başlık veya kategori bazlı filtreleme.
-6. **Hesap / Oynatma Listesi (Account):** Aktif playlist yönetimi, yeni URL/Xtream ekleme, tema ve arabellek ayarları.
+| Ekran | Açıklama |
+|---|---|
+| **📺 Canlı TV (Live TV)** | Kategorili TV kanalları, EPG rehberi ve hızlı kanal değiştirme |
+| **🎬 Filmler (Movies)** | Poster ızgarası, TMDb detayları ve VOD oynatma/indirme |
+| **🍿 Diziler (Series)** | Sezon ve bölüm hiyerarşisi, Binge-Watch ve otomatik sonraki bölüm |
+| **📥 İndirilenler (Downloads)** | İndirilen VOD filmler, dizi bölümleri ve PVR canlı kayıtları |
+| **🔍 Arama (Search)** | Canlı arama ve kategori filtreleme |
+| **⚙️ Hesap & Ayarlar (Account)** | Playlist yönetimi, Xtream girişi, arabellek ve tema ayarları |
 
 ---
 
 ## 🚀 APK İndirme ve Kurulum
 
-GitHub Actions entegrasyonu sayesinde her güncellemede otomatik olarak yeni `.apk` dosyası üretilmektedir:
+GitHub Actions entegrasyonu sayesinde her kod güncellemesinde otomatik olarak yeni `.apk` dosyası üretilmektedir:
 
 ### 1. APK'yı İndirme:
 1. GitHub reponuzda üst menüden **[Actions](../../actions)** sekmesine tıklayın.
@@ -69,31 +98,19 @@ GitHub Actions entegrasyonu sayesinde her güncellemede otomatik olarak yeni `.a
 4. Sayfanın en altındaki **"Artifacts"** bölümünde yer alan **`IlyasTV-Debug-APK`** bağlantısına tıklayarak ZIP dosyasını indirin.
 
 ### 2. Telefona Yükleme:
-1. İndirdiğiniz ZIP dosyasını açın ve içerisindeki `app-debug.apk` dosyasını telefonunuza aktarın.
-2. APK dosyasına tıklayıp kurulumu başlatın. *(Gerekirse tarayıcınız/dosya yöneticiniz için "Bilinmeyen kaynaklardan yüklemeye izin ver" ayarını açın)*.
-3. Kurulum tamamlandıktan sonra **İlyasTV** uygulamasını açıp izlemeye başlayabilirsiniz!
-
----
-
-## 🛠️ Nasıl Kullanılır?
-
-1. **Uygulamayı Açın:** İlk açılışta yerel demo listesi veya boş liste karşılar.
-2. **Playlist Ekleme:** 
-   - **Hesap** veya **Ayarlar** sekmesine gidin.
-   - IPTV sağlayıcınızdan aldığınız **M3U / M3U8 Linkini** yapıştırın ve **"Kaydet / İçe Aktar"** butonuna basın.
-3. **Kanal Seçimi ve İzleme:** 
-   - Üst kısımdaki kategorilerden (Örn: *Ulusal, Spor, Sinema, Belgesel, Haber*) dilediğiniz grubu seçin.
-   - Kanala tıklayarak oynatıcıyı başlatın.
-4. **Favorilere Ekleme:** Kanal kartının üzerindeki **Kalp (❤️)** simgesine tıklayarak kanalı favorilerinize ekleyin.
+1. İndirdiğiniz ZIP dosyasını açın ve içerisindeki `app-debug.apk` dosyasını Android cihazınıza aktarın.
+2. APK dosyasına tıklayıp kurulumu başlatın. *(Gerekirse "Bilinmeyen kaynaklardan yüklemeye izin ver" ayarını açın)*.
+3. Kurulum tamamlandıktan sonra **İlyasTV** uygulamasını açın!
 
 ---
 
 ## 🏗️ Teknik Mimari & Teknolojiler
 
 - **Mimari:** MVVM (Model-View-ViewModel) + Temiz Mimari (Clean Architecture)
-- **UI & Tasarım:** [Jetpack Compose](https://developer.android.com/jetpack/compose), Material Design 3
+- **UI & Tasarım:** [Jetpack Compose](https://developer.android.com/jetpack/compose) + Material Design 3
 - **Medya Oynatıcı:** [AndroidX Media3 ExoPlayer](https://developer.android.com/guide/topics/media/media3)
-- **Veritabanı / Kalıcılık:** [Room Database](https://developer.android.com/training/data-storage/room) & KSP
+- **Veritabanı / Yerel Depolama:** [Room Database](https://developer.android.com/training/data-storage/room) & KSP
+- **Ağ & API:** [Retrofit 2](https://square.github.io/retrofit/) & [OkHttp](https://square.github.io/okhttp/) & Kotlinx Serialization
 - **Görsel Yükleme:** [Coil Compose](https://coil-kt.github.io/coil/compose/)
 - **Asenkron Yapı:** Kotlin Coroutines & Flow
 - **CI / CD:** GitHub Actions (Java 21, Gradle 9)
@@ -102,7 +119,7 @@ GitHub Actions entegrasyonu sayesinde her güncellemede otomatik olarak yeni `.a
 
 ## 💻 Yerel Geliştirme (Local Build)
 
-Projeyi yerel bilgisayarınızda derlemek isterseniz:
+Projeyi yerel bilgisayarınızda derlemek için:
 
 ```bash
 # Projeyi klonlayın
@@ -111,13 +128,16 @@ cd ilyastv
 
 # Debug APK derleyin
 ./gradlew assembleDebug
+
+# Release AAB (Android App Bundle) derleyin
+./gradlew bundleRelease
 ```
 
-Derlenen APK `app/build/outputs/apk/debug/app-debug.apk` dizininde oluşacaktır.
+Derlenen APK çıktısı `app/build/outputs/apk/debug/app-debug.apk` konumunda oluşturulur.
 
 ---
 
 ## 📄 Lisans & Yasal Uyarı
 
-- **İlyasTV**, kullanıcının kendi sağladığı yasal M3U / IPTV bağlantılarını oynatmak üzere tasarlanmış açık kaynaklı bir medya arayüzüdür.
+- **İlyasTV**, kullanıcının kendi sağladığı yasal M3U / IPTV bağlantılarını ve yayın akışlarını oynatmak üzere geliştirilmiş açık kaynaklı bir medya arayüzüdür.
 - Uygulama bünyesinde telif hakkına tabi hiçbir canlı yayın, film veya dizi barındırılmaz ya da sunulmaz.
