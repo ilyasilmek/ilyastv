@@ -183,6 +183,7 @@ fun StreamFlowApp(
     val allDownloads by viewModel.allDownloads.collectAsStateWithLifecycle()
     val storageStats by viewModel.storageStats.collectAsStateWithLifecycle()
     val downloadToastMessage by viewModel.downloadToastMessage.collectAsStateWithLifecycle()
+    val pvrRecordingState by viewModel.pvrRecordingState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     LaunchedEffect(downloadToastMessage) {
@@ -246,7 +247,12 @@ fun StreamFlowApp(
             onSelectChannel = { viewModel.playChannel(it) },
             onNextChannel = { viewModel.playNextChannel() },
             onPreviousChannel = { viewModel.playPreviousChannel() },
-            onDownloadChannel = { viewModel.downloadChannel(it) }
+            onDownloadChannel = { viewModel.downloadChannel(it) },
+            pvrRecordingState = pvrRecordingState,
+            onTogglePvrRecording = { viewModel.togglePvrRecording(it) },
+            onPlayCatchup = { ch, prog -> viewModel.playCatchup(ch, prog) },
+            onNextEpisode = { viewModel.playNextEpisode() },
+            nextEpisodeItem = viewModel.getNextEpisode(activePlayingChannel)
         )
     } else {
         Scaffold(

@@ -9,13 +9,22 @@ import com.example.data.model.AccountInfo
 import com.example.data.model.ChannelItem
 import com.example.data.model.DownloadItem
 import com.example.data.model.DownloadStatus
+import com.example.data.model.EpgProgramItem
 import com.example.data.model.PlaylistItem
+import com.example.data.model.SubtitleItem
+import com.example.data.model.TmdbMetadata
 import com.example.data.parser.M3uParser
+import com.example.data.repository.CatchupHelper
 import com.example.data.repository.DownloadRepository
 import com.example.data.repository.IptvRepository
+import com.example.data.repository.PvrRecordingState
+import com.example.data.repository.PvrRepository
 import com.example.data.repository.StorageStats
+import com.example.data.repository.SubtitleService
+import com.example.data.repository.TmdbService
 import com.example.ui.theme.AppThemeSetting
 import com.example.ui.theme.ViewModeSetting
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.InputStream
 
 sealed interface ImportState {
@@ -44,6 +54,7 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: IptvRepository
     private val downloadRepository: DownloadRepository
+    private val pvrRepository: PvrRepository
     private val prefs = application.getSharedPreferences("ilyastv_prefs", Context.MODE_PRIVATE)
 
     private val _hasAcceptedDisclaimer = MutableStateFlow(prefs.getBoolean("disclaimer_accepted", false))
@@ -58,23 +69,26 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     private val _storageStats = MutableStateFlow(StorageStats(0L, 0L, 0L))
     val storageStats: StateFlow<StorageStats> = _storageStats.asStateFlow()
 
+    val pvrRecordingState: StateFlow<PvrRecordingState>
+
     init {
         val db = AppDatabase.getDatabase(application)
         repository = IptvRepository(db.playlistDao(), db.channelDao())
         downloadRepository = DownloadRepository(application, db.downloadDao())
+        pvrRepository = PvrRepository(application, db.downloadDao())
+        pvrRecordingState = pvrRepository.recordingState
         
         viewModelScope.launch {
             repository.ensureDefaultDataLoaded()
         }
 
-        // Periodic downloader progress syncer
+        // Periodic storage stats updater
         viewModelScope.launch {
             while (isActive) {
                 try {
-                    downloadRepository.syncActiveDownloadsProgress()
                     _storageStats.value = downloadRepository.getStorageStats()
                 } catch (_: Exception) {}
-                delay(1800)
+                delay(2000)
             }
         }
     }
@@ -531,6 +545,97 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
 
     fun playDownloadedItem(item: DownloadItem) {
         playChannel(item.toChannelItem())
+    }
+
+    // --- 1. PVR (Live TV Recording) ---
+    fun togglePvrRecording(channel: ChannelItem) {
+        if (pvrRecordingState.value.isRecording) {
+            stopPvrRecording()
+        } else {
+            startPvrRecording(channel)
+        }
+    }
+
+    fun startPvrRecording(channel: ChannelItem) {
+        val started = pvrRepository.startRecording(channel)
+        if (started) {
+            _downloadToastMessage.value = "🔴 “${channel.name}” canlı yayını kaydedilmeye başlandı."
+        } else {
+            _downloadToastMessage.value = "Zaten aktif bir yayın kaydı bulunuyor."
+        }
+    }
+
+    fun stopPvrRecording() {
+        viewModelScope.launch {
+            val savedItem = pvrRepository.stopRecording()
+            if (savedItem != null) {
+                _downloadToastMessage.value = "✅ Canlı yayın kaydı başarıyla kaydedildi! 'İndirilenler & Kayıtlar' sekmesinden izleyebilirsiniz."
+            } else {
+                _downloadToastMessage.value = "Kayıt durduruldu."
+            }
+        }
+    }
+
+    fun cancelPvrRecording() {
+        pvrRepository.cancelRecording()
+        _downloadToastMessage.value = "Canlı yayın kaydı iptal edildi."
+    }
+
+    // --- 2. TMDb Metadata ---
+    suspend fun getTmdbMetadata(title: String, isSeries: Boolean): TmdbMetadata? {
+        return TmdbService.getMetadata(title, isSeries)
+    }
+
+    // --- 3. Online Subtitles ---
+    suspend fun searchSubtitles(title: String, langCode: String): List<SubtitleItem> {
+        return SubtitleService.searchSubtitles(title, langCode)
+    }
+
+    suspend fun downloadSubtitle(item: SubtitleItem): java.io.File {
+        return SubtitleService.downloadSubtitleFile(getApplication(), item)
+    }
+
+    // --- 4. Catch-Up (Timeshift) ---
+    fun getScheduleForChannel(channel: ChannelItem): List<EpgProgramItem> {
+        return CatchupHelper.generateScheduleForChannel(channel)
+    }
+
+    fun playCatchup(channel: ChannelItem, program: EpgProgramItem) {
+        val streamUrl = program.catchupUrl ?: channel.streamUrl
+        val catchupChannel = channel.copy(
+            id = -System.currentTimeMillis(), // Temporary ID for catch-up stream
+            name = "${channel.name} ⏪ ${program.title}",
+            streamUrl = streamUrl,
+            currentProgram = "⏪ Tekrar Yayın: ${program.title}"
+        )
+        playChannel(catchupChannel)
+        _downloadToastMessage.value = "⏪ '${program.title}' geçmiş yayını başlatılıyor..."
+    }
+
+    // --- 5. Binge-Watch (Next Episode Detector) ---
+    fun getNextEpisode(currentChannel: ChannelItem? = _currentlyPlayingChannel.value): ChannelItem? {
+        val channel = currentChannel ?: return null
+        if (channel.streamType != "SERIES") return null
+        val currentSeriesList = seriesChannels.value
+        val index = currentSeriesList.indexOfFirst { it.id == channel.id }
+        return if (index != -1 && index + 1 < currentSeriesList.size) {
+            val nextItem = currentSeriesList[index + 1]
+            if (nextItem.groupTitle.equals(channel.groupTitle, ignoreCase = true)) {
+                nextItem
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    fun playNextEpisode() {
+        val next = getNextEpisode()
+        if (next != null) {
+            playChannel(next)
+            _downloadToastMessage.value = "Sonraki bölüme geçildi: ${next.name}"
+        }
     }
 
     fun clearImportStatus() {

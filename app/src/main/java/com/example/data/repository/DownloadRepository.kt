@@ -1,9 +1,6 @@
 package com.example.data.repository
 
-import android.app.DownloadManager
 import android.content.Context
-import android.database.Cursor
-import android.net.Uri
 import android.os.Environment
 import android.os.StatFs
 import android.util.Log
@@ -11,16 +8,36 @@ import com.example.data.local.DownloadDao
 import com.example.data.model.ChannelItem
 import com.example.data.model.DownloadItem
 import com.example.data.model.DownloadStatus
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 class DownloadRepository(
     private val context: Context,
     private val downloadDao: DownloadDao
 ) {
-    private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val activeDownloadJobs = ConcurrentHashMap<Long, Job>()
+
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .retryOnConnectionFailure(true)
+        .build()
 
     val allDownloads: Flow<List<DownloadItem>> = downloadDao.getAllDownloads()
     val completedDownloads: Flow<List<DownloadItem>> = downloadDao.getDownloadsByStatus(DownloadStatus.COMPLETED)
@@ -36,15 +53,11 @@ class DownloadRepository(
 
     suspend fun startDownload(channel: ChannelItem): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            if (downloadManager == null) {
-                return@withContext Result.failure(Exception("Cihaz İndirme Yöneticisi (DownloadManager) bulunamadı."))
-            }
-
-            // Check if already in progress or completed
+            // Check if already completed and file exists
             val existing = downloadDao.getDownloadByChannelIdOnce(channel.id)
             if (existing != null && existing.status == DownloadStatus.COMPLETED && !existing.localFilePath.isNullOrBlank()) {
                 val file = File(existing.localFilePath)
-                if (file.exists()) {
+                if (file.exists() && file.length() > 0) {
                     return@withContext Result.success(existing.id)
                 }
             }
@@ -62,7 +75,7 @@ class DownloadRepository(
             }
             val fileName = "IlyasTV_${sanitizedTitle}_${channel.id}.$extension"
 
-            // Target storage directory (App external movies directory - requires no special permissions on modern Android)
+            // Target storage directory (App external movies directory - accessible without runtime permission)
             val moviesDir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
             if (!moviesDir.exists()) {
                 moviesDir.mkdirs()
@@ -72,23 +85,12 @@ class DownloadRepository(
                 targetFile.delete()
             }
 
-            val request = DownloadManager.Request(Uri.parse(channel.streamUrl)).apply {
-                setTitle(channel.name)
-                setDescription("İlyasTV Çevrimdışı İndirme")
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setAllowedOverMetered(true)
-                setAllowedOverRoaming(true)
-                setDestinationUri(Uri.fromFile(targetFile))
-            }
-
-            val dmId = downloadManager.enqueue(request)
-
             val downloadItem = DownloadItem(
                 id = existing?.id ?: 0L,
                 channelId = channel.id,
                 title = channel.name,
                 streamUrl = channel.streamUrl,
-                downloadManagerId = dmId,
+                downloadManagerId = -1L,
                 localFilePath = targetFile.absolutePath,
                 posterUrl = channel.posterUrl ?: channel.logoUrl,
                 groupTitle = channel.groupTitle,
@@ -97,117 +99,163 @@ class DownloadRepository(
                 progressPercent = 0,
                 bytesDownloaded = 0L,
                 totalBytes = 0L,
+                errorMessage = null,
                 createdAt = System.currentTimeMillis()
             )
 
             val rowId = downloadDao.insertDownload(downloadItem)
-            Result.success(rowId)
+            val finalId = if (downloadItem.id > 0) downloadItem.id else rowId
+
+            // Cancel any previous running job for this ID
+            activeDownloadJobs[finalId]?.cancel()
+
+            // Launch background download task
+            val job = repositoryScope.launch {
+                executeDownloadTask(finalId, channel.streamUrl, targetFile)
+            }
+            activeDownloadJobs[finalId] = job
+
+            Result.success(finalId)
         } catch (e: Exception) {
             Log.e("DownloadRepository", "Download start error: ${e.message}", e)
             Result.failure(e)
         }
     }
 
-    suspend fun syncActiveDownloadsProgress() = withContext(Dispatchers.IO) {
-        if (downloadManager == null) return@withContext
+    private suspend fun executeDownloadTask(downloadId: Long, url: String, targetFile: File) {
+        val tempFile = File(targetFile.parentFile, "${targetFile.name}.tmp")
+        if (tempFile.exists()) {
+            tempFile.delete()
+        }
+
+        var inputStream: InputStream? = null
+        var outputStream: FileOutputStream? = null
 
         try {
-            val query = DownloadManager.Query()
-            val cursor: Cursor? = downloadManager.query(query)
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("User-Agent", "VLC/3.0.18 LibVLC/3.0.18 (Android 14; Mobile)")
+                .addHeader("Accept", "*/*")
+                .addHeader("Connection", "keep-alive")
+                .build()
 
-            cursor?.use { c ->
-                val idCol = c.getColumnIndex(DownloadManager.COLUMN_ID)
-                val statusCol = c.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                val bytesDownloadedCol = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                val totalBytesCol = c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                val reasonCol = c.getColumnIndex(DownloadManager.COLUMN_REASON)
-                val uriCol = c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) {
+                val errorMsg = when (response.code) {
+                    403 -> "Sunucu erişimi reddetti (HTTP 403 - Yetkisiz)."
+                    404 -> "Yayın dosyası sunucuda bulunamadı (HTTP 404)."
+                    500, 502, 503 -> "IPTV sunucu hatası (HTTP ${response.code})."
+                    else -> "İndirme başlatılamadı (HTTP ${response.code})."
+                }
+                downloadDao.markFailed(downloadId, error = errorMsg)
+                response.close()
+                return
+            }
 
-                while (c.moveToNext()) {
-                    val dmId = c.getLong(idCol)
-                    val status = c.getInt(statusCol)
-                    val downloadedBytes = c.getLong(bytesDownloadedCol)
-                    val totalBytes = c.getLong(totalBytesCol)
+            val body = response.body
+            if (body == null) {
+                downloadDao.markFailed(downloadId, error = "Sunucudan veri akışı alınamadı.")
+                return
+            }
 
-                    val dbItem = downloadDao.getDownloadByDownloadManagerId(dmId) ?: continue
+            val totalBytes = body.contentLength()
+            inputStream = body.byteStream()
+            outputStream = FileOutputStream(tempFile)
 
-                    when (status) {
-                        DownloadManager.STATUS_SUCCESSFUL -> {
-                            val localUriStr = if (uriCol != -1) c.getString(uriCol) else null
-                            val finalPath = if (!localUriStr.isNullOrBlank()) {
-                                try {
-                                    val uri = Uri.parse(localUriStr)
-                                    uri.path ?: dbItem.localFilePath ?: ""
-                                } catch (_: Exception) {
-                                    dbItem.localFilePath ?: ""
-                                }
-                            } else {
-                                dbItem.localFilePath ?: ""
-                            }
+            val buffer = ByteArray(64 * 1024) // 64 KB buffer for high throughput
+            var bytesRead: Int
+            var totalDownloaded = 0L
+            var lastUpdateBytes = 0L
+            var lastUpdateTime = System.currentTimeMillis()
 
-                            val total = if (totalBytes > 0) totalBytes else (File(finalPath).length().takeIf { it > 0 } ?: downloadedBytes)
-                            downloadDao.markCompleted(
-                                id = dbItem.id,
-                                localPath = finalPath,
-                                totalBytes = total,
-                                completedAt = System.currentTimeMillis()
-                            )
-                        }
-                        DownloadManager.STATUS_RUNNING -> {
-                            val percent = if (totalBytes > 0) {
-                                ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 99)
-                            } else {
-                                0
-                            }
-                            downloadDao.updateProgress(
-                                id = dbItem.id,
-                                progress = percent,
-                                downloadedBytes = downloadedBytes,
-                                totalBytes = totalBytes,
-                                status = DownloadStatus.DOWNLOADING
-                            )
-                        }
-                        DownloadManager.STATUS_PAUSED -> {
-                            val percent = if (totalBytes > 0) {
-                                ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 99)
-                            } else 0
-                            downloadDao.updateProgress(
-                                id = dbItem.id,
-                                progress = percent,
-                                downloadedBytes = downloadedBytes,
-                                totalBytes = totalBytes,
-                                status = DownloadStatus.PAUSED
-                            )
-                        }
-                        DownloadManager.STATUS_FAILED -> {
-                            val reason = if (reasonCol != -1) c.getInt(reasonCol) else -1
-                            downloadDao.markFailed(
-                                id = dbItem.id,
-                                error = "İndirme başarısız oldu (Hata kodu: $reason)"
-                            )
-                        }
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                outputStream.write(buffer, 0, bytesRead)
+                totalDownloaded += bytesRead
+
+                val currentTime = System.currentTimeMillis()
+                // Update progress every 500KB or every 1000ms
+                if (totalDownloaded - lastUpdateBytes >= 500 * 1024 || currentTime - lastUpdateTime >= 1000) {
+                    val progress = if (totalBytes > 0) {
+                        ((totalDownloaded * 100) / totalBytes).toInt().coerceIn(0, 99)
+                    } else {
+                        0
                     }
+                    downloadDao.updateProgress(
+                        id = downloadId,
+                        progress = progress,
+                        downloadedBytes = totalDownloaded,
+                        totalBytes = totalBytes,
+                        status = DownloadStatus.DOWNLOADING
+                    )
+                    lastUpdateBytes = totalDownloaded
+                    lastUpdateTime = currentTime
                 }
             }
+
+            outputStream.flush()
+            outputStream.close()
+            outputStream = null
+            inputStream.close()
+            inputStream = null
+
+            // Rename .tmp to final target file
+            if (tempFile.exists()) {
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+                val renamed = tempFile.renameTo(targetFile)
+                val finalFile = if (renamed) targetFile else tempFile
+                val finalSize = finalFile.length()
+
+                downloadDao.markCompleted(
+                    id = downloadId,
+                    localPath = finalFile.absolutePath,
+                    totalBytes = finalSize,
+                    completedAt = System.currentTimeMillis()
+                )
+            } else {
+                downloadDao.markFailed(downloadId, error = "Dosya kaydedilemedi.")
+            }
+
         } catch (e: Exception) {
-            Log.e("DownloadRepository", "Error syncing downloads: ${e.message}")
+            Log.e("DownloadRepository", "Download task failed: ${e.message}", e)
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+            if (e is kotlinx.coroutines.CancellationException) {
+                downloadDao.deleteDownloadById(downloadId)
+            } else {
+                val readableMessage = when {
+                    e.message?.contains("timeout", ignoreCase = true) == true -> "Bağlantı zaman aşımına uğradı."
+                    e.message?.contains("ENOSPC", ignoreCase = true) == true -> "Cihazda yeterli hafıza alanı yok."
+                    e.message?.contains("ECONNRESET", ignoreCase = true) == true -> "Sunucu bağlantıyı kesti."
+                    else -> "İndirme hatası: ${e.localizedMessage ?: "Bilinmeyen hata"}"
+                }
+                downloadDao.markFailed(downloadId, error = readableMessage)
+            }
+        } finally {
+            try { outputStream?.close() } catch (_: Exception) {}
+            try { inputStream?.close() } catch (_: Exception) {}
+            activeDownloadJobs.remove(downloadId)
         }
     }
 
     suspend fun deleteDownload(item: DownloadItem) = withContext(Dispatchers.IO) {
         try {
-            // Cancel from download manager if in progress
-            if (item.downloadManagerId > 0 && downloadManager != null) {
-                try {
-                    downloadManager.remove(item.downloadManagerId)
-                } catch (_: Exception) {}
-            }
+            // Cancel running job if any
+            activeDownloadJobs[item.id]?.cancel()
+            activeDownloadJobs.remove(item.id)
 
             // Remove file from disk
             if (!item.localFilePath.isNullOrBlank()) {
                 val file = File(item.localFilePath)
                 if (file.exists()) {
                     file.delete()
+                }
+                // Also clean up any .tmp
+                val tmpFile = File("${item.localFilePath}.tmp")
+                if (tmpFile.exists()) {
+                    tmpFile.delete()
                 }
             }
 
@@ -222,11 +270,6 @@ class DownloadRepository(
         deleteDownload(item)
     }
 
-    suspend fun clearCompletedDownloads() = withContext(Dispatchers.IO) {
-        val completed = downloadDao.getDownloadsByStatus(DownloadStatus.COMPLETED)
-        // Handled through single delete iterations or mass delete
-    }
-
     fun getStorageStats(): StorageStats {
         return try {
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
@@ -235,7 +278,7 @@ class DownloadRepository(
             val totalBytes = stat.totalBytes
             
             // Calculate app downloaded files size
-            val appDownloadsSize = dir.listFiles()?.sumOf { it.length() } ?: 0L
+            val appDownloadsSize = dir.listFiles()?.filter { !it.name.endsWith(".tmp") }?.sumOf { it.length() } ?: 0L
             
             StorageStats(
                 freeBytes = availableBytes,

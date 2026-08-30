@@ -128,6 +128,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Update
+import androidx.media3.common.MimeTypes
+import com.example.data.model.EpgProgramItem
+import com.example.data.model.SubtitleItem
+import com.example.data.repository.PvrRecordingState
+import com.example.ui.components.CatchupDialog
+import com.example.ui.components.OnlineSubtitleDialog
+import com.example.ui.components.TmdbDetailDialog
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -169,6 +185,18 @@ fun Context.findActivity(): Activity? {
 data class AudioTrackOption(val id: String, val label: String, val language: String, val isSelected: Boolean, val groupIndex: Int, val trackIndex: Int)
 data class SubtitleTrackOption(val id: String, val label: String, val language: String, val isSelected: Boolean, val groupIndex: Int, val trackIndex: Int)
 
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
+    }
+}
+
 @Composable
 fun StreamPlayer(
     channel: ChannelItem,
@@ -183,6 +211,11 @@ fun StreamPlayer(
     onNextChannel: () -> Unit,
     onPreviousChannel: () -> Unit,
     onDownloadChannel: ((ChannelItem) -> Unit)? = null,
+    pvrRecordingState: PvrRecordingState = PvrRecordingState(),
+    onTogglePvrRecording: ((ChannelItem) -> Unit)? = null,
+    onPlayCatchup: ((ChannelItem, EpgProgramItem) -> Unit)? = null,
+    onNextEpisode: (() -> Unit)? = null,
+    nextEpisodeItem: ChannelItem? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -197,6 +230,11 @@ fun StreamPlayer(
     var isFullscreen by remember { mutableStateOf(false) }
     var showChannelListSheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showTmdbDialog by remember { mutableStateOf(false) }
+    var showOnlineSubtitleDialog by remember { mutableStateOf(false) }
+    var showCatchupDialog by remember { mutableStateOf(false) }
+    var externalSubtitleItem by remember { mutableStateOf<SubtitleItem?>(null) }
+    var nextEpisodeCountdown by remember { mutableIntStateOf(-1) }
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
@@ -314,6 +352,30 @@ fun StreamPlayer(
         }
         availableAudioTracks = audios
         availableSubtitles = subs
+    }
+
+    fun loadExternalSubtitle(file: java.io.File, item: SubtitleItem) {
+        externalSubtitleItem = item
+        try {
+            val subConfig = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file))
+                .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+                .setLanguage(item.languageCode)
+                .setLabel(item.language)
+                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                .build()
+
+            val currentPos = exoPlayer.currentPosition
+            val isCurrPlaying = exoPlayer.isPlaying
+            val mediaItem = MediaItem.Builder()
+                .setUri(Uri.parse(channel.streamUrl))
+                .setSubtitleConfigurations(listOf(subConfig))
+                .build()
+
+            exoPlayer.setMediaItem(mediaItem, currentPos)
+            exoPlayer.prepare()
+            if (isCurrPlaying) exoPlayer.play()
+            isSubtitleEnabled = true
+        } catch (_: Exception) {}
     }
 
     // Handle Channel Stream Loading & Resume Seek
@@ -1071,11 +1133,66 @@ fun StreamPlayer(
                         }
                     }
 
-                    // Top Right Action Buttons (PiP, Favorite, Settings)
+                    // Top Right Action Buttons (PVR, Catch-Up, TMDb, PiP, Download, Favorite, Settings)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // 1. PVR Recording Button (for Live Channels)
+                        if (channel.streamType == "LIVE" && onTogglePvrRecording != null) {
+                            val isThisRecording = pvrRecordingState.isRecording && pvrRecordingState.channel?.id == channel.id
+                            IconButton(
+                                onClick = { onTogglePvrRecording(channel) },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(if (isThisRecording) Color(0xFFD32F2F) else Color.White.copy(alpha = 0.15f), CircleShape)
+                                    .tvFocusable(shape = CircleShape) { onTogglePvrRecording(channel) }
+                                    .testTag("player_pvr_button")
+                            ) {
+                                Icon(
+                                    imageVector = if (isThisRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                                    contentDescription = if (isThisRecording) "Kaydı Durdur" else "Canlı Yayını Kaydet (PVR)",
+                                    tint = if (isThisRecording) Color.White else Color(0xFFFF5252)
+                                )
+                            }
+                        }
+
+                        // 2. Catch-Up TV (for Live Channels)
+                        if (channel.streamType == "LIVE" && onPlayCatchup != null) {
+                            IconButton(
+                                onClick = { showCatchupDialog = true },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                    .tvFocusable(shape = CircleShape) { showCatchupDialog = true }
+                                    .testTag("player_catchup_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Update,
+                                    contentDescription = "Catch-Up / Geçmiş Yayınlar",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                        // 3. TMDb Metadata Dialog (for Movies & Series)
+                        if (channel.streamType != "LIVE") {
+                            IconButton(
+                                onClick = { showTmdbDialog = true },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                    .tvFocusable(shape = CircleShape) { showTmdbDialog = true }
+                                    .testTag("player_tmdb_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "TMDb Bilgisi & Konu",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
                         // PiP (Picture-in-Picture) Button
                         IconButton(
                             onClick = onEnterPip,
@@ -1180,6 +1297,111 @@ fun StreamPlayer(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
+                    // 1. Floating PVR REC Indicator Banner
+                    if (pvrRecordingState.isRecording && pvrRecordingState.channel?.id == channel.id) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFD32F2F).copy(alpha = 0.95f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(bottom = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .background(Color.White, CircleShape)
+                                )
+                                Text(
+                                    text = "🔴 CANLI KAYIT: ${pvrRecordingState.elapsedSecondsFormatted} (${pvrRecordingState.recordedBytesFormatted})",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.Black.copy(alpha = 0.35f),
+                                    modifier = Modifier.clickable { onTogglePvrRecording?.invoke(channel) }
+                                ) {
+                                    Text(
+                                        text = "Durdur",
+                                        color = Color(0xFFFFD54F),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Binge-Watch: Skip Intro (+85s) Button
+                    if (channel.streamType != "LIVE" && currentPosition in 3_000L..120_000L && duration > 240_000L) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.Black.copy(alpha = 0.75f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StreamFlowPrimary.copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(bottom = 8.dp)
+                                .clickable {
+                                    val newPos = (exoPlayer.currentPosition + 85000L).coerceAtMost(duration)
+                                    exoPlayer.seekTo(newPos)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.FastForward, contentDescription = null, tint = StreamFlowPrimary, modifier = Modifier.size(16.dp))
+                                Text("Jeneriği Atla (+85sn)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // 3. Binge-Watch: Next Episode Prompt (when near end of episode)
+                    if (channel.streamType == "SERIES" && nextEpisodeItem != null && duration > 60_000L && (duration - currentPosition) in 1L..35_000L) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF1E293B).copy(alpha = 0.95f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StreamFlowPrimary),
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Column {
+                                    Text("Sonraki Bölüm", color = StreamFlowPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text(nextEpisodeItem.name, color = Color.White, fontSize = 12.sp, maxLines = 1)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = StreamFlowPrimary,
+                                    modifier = Modifier.clickable { onNextEpisode?.invoke() }
+                                ) {
+                                    Text(
+                                        text = "Şimdi Geç",
+                                        color = Color.Black,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Seekable Timeline / Progress Slider
                     if (duration > 0L) {
                         Row(
@@ -1637,6 +1859,46 @@ fun StreamPlayer(
                                     }
                                 }
                             }
+
+                            // Online Subtitle Search Button
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = StreamFlowPrimary.copy(alpha = 0.15f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, StreamFlowPrimary.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showSettingsSheet = false
+                                        showOnlineSubtitleDialog = true
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Language,
+                                        contentDescription = null,
+                                        tint = StreamFlowPrimary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "🌐 Çevrimiçi Altyazı Ara",
+                                            color = StreamFlowPrimary,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "OpenSubtitles & SubDL üzerinden Türkçe ve diğer dillerde altyazı bul",
+                                            color = StreamFlowOnSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                         1 -> {
                             // Hız ve En Boy Oranı
@@ -1852,18 +2114,45 @@ fun StreamPlayer(
                 }
             }
         }
-        }
-    }
-}
 
-private fun formatTime(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format("%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
+        // 12. TMDb Movie/Series Metadata Dialog
+        if (showTmdbDialog) {
+            TmdbDetailDialog(
+                channel = channel,
+                onDismiss = { showTmdbDialog = false },
+                onPlay = { showTmdbDialog = false },
+                onDownload = if (onDownloadChannel != null && !channel.streamUrl.startsWith("file://")) {
+                    {
+                        showTmdbDialog = false
+                        onDownloadChannel(channel)
+                    }
+                } else null
+            )
+        }
+
+        // 13. Online Subtitle Search & Download Dialog
+        if (showOnlineSubtitleDialog) {
+            OnlineSubtitleDialog(
+                initialTitle = channel.name,
+                onDismiss = { showOnlineSubtitleDialog = false },
+                onSubtitleSelected = { subFile, subItem ->
+                    showOnlineSubtitleDialog = false
+                    loadExternalSubtitle(subFile, subItem)
+                }
+            )
+        }
+
+        // 14. Catch-Up TV EPG / Past Streams Dialog
+        if (showCatchupDialog) {
+            CatchupDialog(
+                channel = channel,
+                onDismiss = { showCatchupDialog = false },
+                onPlayProgram = { program ->
+                    showCatchupDialog = false
+                    onPlayCatchup?.invoke(channel, program)
+                }
+            )
+        }
+        }
     }
 }

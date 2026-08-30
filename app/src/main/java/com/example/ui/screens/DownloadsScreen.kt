@@ -126,6 +126,7 @@ fun DownloadsScreen(
     val filteredDownloads = when (selectedFilter) {
         "Filmler" -> downloads.filter { it.streamType == "MOVIE" || it.streamType == "VOD" }
         "Diziler" -> downloads.filter { it.streamType == "SERIES" }
+        "PVR Kayıtları" -> downloads.filter { it.streamType == "PVR" || it.streamType == "LIVE" }
         "İnenler" -> downloads.filter { it.status == DownloadStatus.DOWNLOADING || it.status == DownloadStatus.PENDING }
         "Tamamlananlar" -> downloads.filter { it.status == DownloadStatus.COMPLETED }
         else -> downloads
@@ -187,12 +188,13 @@ fun DownloadsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    val filters = listOf("Tümü", "Filmler", "Diziler", "İnenler", "Tamamlananlar")
+                    val filters = listOf("Tümü", "Filmler", "Diziler", "PVR Kayıtları", "İnenler", "Tamamlananlar")
                     items(filters) { filter ->
                         val isSelected = selectedFilter == filter
                         val count = when (filter) {
                             "Filmler" -> downloads.count { it.streamType == "MOVIE" || it.streamType == "VOD" }
                             "Diziler" -> downloads.count { it.streamType == "SERIES" }
+                            "PVR Kayıtları" -> downloads.count { it.streamType == "PVR" || it.streamType == "LIVE" }
                             "İnenler" -> downloads.count { it.status == DownloadStatus.DOWNLOADING || it.status == DownloadStatus.PENDING }
                             "Tamamlananlar" -> downloads.count { it.status == DownloadStatus.COMPLETED }
                             else -> downloads.size
