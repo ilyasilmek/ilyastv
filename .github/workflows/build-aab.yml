@@ -32,12 +32,18 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
-          else
-            keytool -genkeypair -v -keystore my-upload-key.jks -alias ilyastv -keyalg RSA -keysize 2048 -validity 10000 -storepass IlyasTv2026! -keypass IlyasTv2026! -dname "CN=IlyasTV, OU=Mobile, O=IlyasTV, L=Istanbul, ST=Istanbul, C=TR"
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "HATA: KEYSTORE_BASE64 secret bulunamadi!"
+            exit 1
           fi
-          # Anahtarı hem ana dizine hem app klasörüne kopyalıyoruz
+          
+          # Base64'u kesin ve hatasiz sekilde dosyaya yaz
+          printf "%s" "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
+          
+          # Dosyanin boyutunu kontrol et ve bas
+          ls -la my-upload-key.jks
+          
+          # Anahtari app klasorune kopyala
           cp my-upload-key.jks app/my-upload-key.jks
 
       - name: Build Release Bundle (.aab)
