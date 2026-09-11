@@ -42,7 +42,8 @@ jobs:
 
       - name: Build Release Bundle (.aab)
         run: |
-          ./gradlew :app:bundleRelease \
+          chmod +x ./gradlew || true
+          gradle :app:bundleRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/my-upload-key.jks \
             -Pandroid.injected.signing.store.password=IlyasTv2026! \
             -Pandroid.injected.signing.key.alias=ilyastv \
