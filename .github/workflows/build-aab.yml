@@ -48,6 +48,7 @@ jobs:
 
       - name: Build Release Bundle (.aab)
         run: |
+          touch local.properties
           chmod +x ./gradlew || true
           gradle :app:bundleRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/my-upload-key.jks \
