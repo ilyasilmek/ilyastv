@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+googleServices {
+    missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN
+}
+
 android {
     namespace = "com.example"
     compileSdk { version = release(36) { minorApiLevel = 1 } }
