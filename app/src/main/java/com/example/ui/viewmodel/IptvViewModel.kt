@@ -23,6 +23,7 @@ import com.example.data.repository.StorageStats
 import com.example.data.repository.SubtitleService
 import com.example.data.repository.TmdbService
 import com.example.ui.theme.AppThemeSetting
+import com.example.ui.theme.ThemeBrandStyle
 import com.example.ui.theme.ViewModeSetting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -234,8 +235,20 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     private val _bufferSetting = MutableStateFlow(loadBufferSetting())
     val bufferSetting: StateFlow<BufferOption> = _bufferSetting.asStateFlow()
 
+    private fun loadBrandStyle(): ThemeBrandStyle {
+        val name = prefs.getString("app_brand_style", ThemeBrandStyle.MODERN_ILYAS_TV.name) ?: ThemeBrandStyle.MODERN_ILYAS_TV.name
+        return try {
+            ThemeBrandStyle.valueOf(name)
+        } catch (_: Exception) {
+            ThemeBrandStyle.MODERN_ILYAS_TV
+        }
+    }
+
     private val _themeSetting = MutableStateFlow(loadThemeSetting())
     val themeSetting: StateFlow<AppThemeSetting> = _themeSetting.asStateFlow()
+
+    private val _brandStyle = MutableStateFlow(loadBrandStyle())
+    val brandStyle: StateFlow<ThemeBrandStyle> = _brandStyle.asStateFlow()
 
     private val _viewModeSetting = MutableStateFlow(loadViewModeSetting())
     val viewModeSetting: StateFlow<ViewModeSetting> = _viewModeSetting.asStateFlow()
@@ -493,6 +506,11 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     fun setThemeSetting(setting: AppThemeSetting) {
         prefs.edit().putString("app_theme_setting", setting.name).apply()
         _themeSetting.value = setting
+    }
+
+    fun setBrandStyle(style: ThemeBrandStyle) {
+        prefs.edit().putString("app_brand_style", style.name).apply()
+        _brandStyle.value = style
     }
 
     fun setViewModeSetting(setting: ViewModeSetting) {

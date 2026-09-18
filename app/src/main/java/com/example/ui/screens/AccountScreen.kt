@@ -41,8 +41,10 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Speed
@@ -93,6 +95,7 @@ import com.example.ui.components.tvFocusable
 import com.example.ui.theme.AppThemeSetting
 import com.example.ui.theme.StreamFlowAccentOrange
 import com.example.ui.theme.StreamFlowLiveRed
+import com.example.ui.theme.ThemeBrandStyle
 import com.example.ui.theme.ViewModeSetting
 import com.example.ui.viewmodel.BufferOption
 import com.example.ui.viewmodel.ImportState
@@ -106,10 +109,12 @@ fun AccountScreen(
     importState: ImportState,
     bufferOption: BufferOption,
     themeSetting: AppThemeSetting,
+    brandStyle: ThemeBrandStyle = ThemeBrandStyle.MODERN_ILYAS_TV,
     viewModeSetting: ViewModeSetting,
     onSelectPlaylist: (Long) -> Unit = {},
     onBufferOptionChange: (BufferOption) -> Unit,
     onThemeSettingChange: (AppThemeSetting) -> Unit,
+    onBrandStyleChange: (ThemeBrandStyle) -> Unit = {},
     onViewModeSettingChange: (ViewModeSetting) -> Unit,
     onImportUrl: (name: String, url: String) -> Unit,
     onImportXtream: (server: String, user: String, pass: String) -> Unit,
@@ -141,6 +146,7 @@ fun AccountScreen(
 
     var showBufferDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showBrandStyleDialog by remember { mutableStateOf(false) }
     var showViewModeDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var showClearFavoritesDialog by remember { mutableStateOf(false) }
@@ -178,7 +184,68 @@ fun AccountScreen(
             AccountStatusCard(accountInfo = accountInfo, playlistCount = playlists.size)
         }
 
-        // 2. Add New Playlist / Xtream Card
+        // 2. Quick Theme & Style Banner (En Başta - Anında Görünür)
+        item {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Palette,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Marka & Renk Teması",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Aktif: ${brandStyle.title} (${if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) "Sinematik Kırmızı" else "Klasik Mavi"})",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { showBrandStyleDialog = true },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text("Değiştir", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Add New Playlist / Xtream Card
         item {
             Surface(
                 shape = RoundedCornerShape(20.dp),
@@ -642,6 +709,16 @@ fun AccountScreen(
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
+                    // Theme Brand Style Selector (Modern İlyasTV vs Klasik Tema)
+                    SettingsItemRow(
+                        icon = Icons.Default.Palette,
+                        title = "Marka & Renk Teması",
+                        subtitle = "${brandStyle.title} (${if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) "Sinematik Kırmızı" else "Klasik Mavi"})",
+                        onClick = { showBrandStyleDialog = true }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
+
                     // Default View Mode Selector
                     val viewIcon = when (viewModeSetting) {
                         ViewModeSetting.EPG -> Icons.Default.Subject
@@ -791,6 +868,83 @@ fun AccountScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
+                    Text("Tamam", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    // Brand Style Selection Dialog (Modern İlyasTV vs Klasik Tema)
+    if (showBrandStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { showBrandStyleDialog = false },
+            title = {
+                Text(text = "Görsel Tema Stili", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "İlyasTV için sinematik modern kırmızı tasarım veya önceki klasik mavi temayı seçebilirsiniz:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp
+                    )
+                    ThemeBrandStyle.values().forEach { style ->
+                        val isSelected = brandStyle == style
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onBrandStyleChange(style)
+                                    showBrandStyleDialog = false
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        onBrandStyleChange(style)
+                                        showBrandStyleDialog = false
+                                    },
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = if (style == ThemeBrandStyle.MODERN_ILYAS_TV) Icons.Default.Tv else Icons.Default.Restore,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = style.title,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = style.description,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBrandStyleDialog = false }) {
                     Text("Tamam", color = MaterialTheme.colorScheme.primary)
                 }
             },

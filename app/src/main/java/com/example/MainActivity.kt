@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SettingsBrightness
@@ -91,6 +92,7 @@ import com.example.ui.screens.SearchScreen
 import com.example.ui.screens.SeriesScreen
 import com.example.ui.theme.AppThemeSetting
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.ThemeBrandStyle
 import com.example.ui.theme.ViewModeSetting
 import com.example.ui.viewmodel.IptvViewModel
 
@@ -113,8 +115,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeSetting by viewModel.themeSetting.collectAsStateWithLifecycle()
+            val brandStyle by viewModel.brandStyle.collectAsStateWithLifecycle()
             val inPip by isInPipModeState
-            MyApplicationTheme(themeSetting = themeSetting) {
+            MyApplicationTheme(themeSetting = themeSetting, brandStyle = brandStyle) {
                 StreamFlowApp(
                     viewModel = viewModel,
                     isInPipMode = inPip,
@@ -185,6 +188,7 @@ fun StreamFlowApp(
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     val bufferSetting by viewModel.bufferSetting.collectAsStateWithLifecycle()
     val themeSetting by viewModel.themeSetting.collectAsStateWithLifecycle()
+    val brandStyle by viewModel.brandStyle.collectAsStateWithLifecycle()
     val viewModeSetting by viewModel.viewModeSetting.collectAsStateWithLifecycle()
 
     val allDownloads by viewModel.allDownloads.collectAsStateWithLifecycle()
@@ -315,6 +319,37 @@ fun StreamFlowApp(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // Quick Brand Style Toggle Icon (Modern İlyasTV vs Klasik)
+                            IconButton(
+                                onClick = {
+                                    val nextBrand = if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) {
+                                        ThemeBrandStyle.CLASSIC_STREAMFLOW
+                                    } else {
+                                        ThemeBrandStyle.MODERN_ILYAS_TV
+                                    }
+                                    viewModel.setBrandStyle(nextBrand)
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+                                    .tvFocusable(shape = CircleShape) {
+                                        val nextBrand = if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) {
+                                            ThemeBrandStyle.CLASSIC_STREAMFLOW
+                                        } else {
+                                            ThemeBrandStyle.MODERN_ILYAS_TV
+                                        }
+                                        viewModel.setBrandStyle(nextBrand)
+                                    }
+                                    .testTag("quick_brand_style_toggle_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = "Renk Teması Değiştir (${brandStyle.title})",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
                             // Quick Theme Toggle Icon (Cycles: System -> Dark -> Light -> System)
                             IconButton(
                                 onClick = {
@@ -572,10 +607,12 @@ fun StreamFlowApp(
                                 importState = importState,
                                 bufferOption = bufferSetting,
                                 themeSetting = themeSetting,
+                                brandStyle = brandStyle,
                                 viewModeSetting = viewModeSetting,
                                 onSelectPlaylist = { viewModel.selectPlaylist(it) },
                                 onBufferOptionChange = { viewModel.setBufferSetting(it) },
                                 onThemeSettingChange = { viewModel.setThemeSetting(it) },
+                                onBrandStyleChange = { viewModel.setBrandStyle(it) },
                                 onViewModeSettingChange = { viewModel.setViewModeSetting(it) },
                                 onImportUrl = { name, url -> viewModel.importPlaylistFromUrl(name, url) },
                                 onImportXtream = { server, user, pass -> viewModel.importXtreamAccount(server, user, pass) },
