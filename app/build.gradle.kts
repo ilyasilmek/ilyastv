@@ -14,14 +14,14 @@ googleServices {
 
 android {
     namespace = "com.example"
-    compileSdk { version = release(36) { minorApiLevel = 1 } }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.aistudio.streamflow.iptv"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.54.03"
+        versionCode = 4
+        versionName = "1.54.04"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -29,10 +29,13 @@ android {
     signingConfigs {
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-            storeFile = file(keystorePath)
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS") ?: "ilyastv"
-            keyPassword = System.getenv("KEY_PASSWORD")
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS") ?: "ilyastv"
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
         create("debugConfig") {
             storeFile = file("${rootDir}/debug.keystore")
@@ -44,7 +47,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            val releaseKeystore = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+            if (file(releaseKeystore).exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -55,10 +63,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlin {
-        jvmToolchain(21)
     }
 
     buildFeatures {
@@ -73,8 +77,13 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
