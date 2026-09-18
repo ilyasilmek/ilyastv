@@ -12,6 +12,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.EaseOutBack
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -65,7 +70,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -193,6 +200,7 @@ fun StreamFlowApp(
         }
     }
 
+    var showSplashOverlay by remember { mutableStateOf(true) }
     var currentTab by remember { mutableStateOf(NavigationTab.LIVE_TV) }
 
     val activePlayingChannel = currentlyPlayingChannel
@@ -217,13 +225,14 @@ fun StreamFlowApp(
         currentTab = NavigationTab.LIVE_TV
     }
 
-    // First Launch Legal Disclaimer Dialog
-    if (!hasAcceptedDisclaimer) {
-        LegalDisclaimerDialog(
-            isFirstLaunch = true,
-            onAccept = { viewModel.acceptDisclaimer() }
-        )
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // First Launch Legal Disclaimer Dialog
+        if (!hasAcceptedDisclaimer) {
+            LegalDisclaimerDialog(
+                isFirstLaunch = true,
+                onAccept = { viewModel.acceptDisclaimer() }
+            )
+        }
 
     if (activePlayingChannel != null) {
         // Fullscreen or PiP Player
@@ -584,6 +593,111 @@ fun StreamFlowApp(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Entrance Splash Animation Overlay
+    if (showSplashOverlay) {
+        SplashScreenOverlay(
+            onAnimationFinished = { showSplashOverlay = false }
+        )
+    }
+}
+}
+
+@Composable
+fun SplashScreenOverlay(onAnimationFinished: () -> Unit) {
+    var startAnimation by remember { mutableStateOf(false) }
+
+    val logoScale by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0.75f,
+        animationSpec = tween(durationMillis = 700, easing = EaseOutBack),
+        label = "logoScale"
+    )
+
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = LinearEasing),
+        label = "contentAlpha"
+    )
+
+    var isFadingOut by remember { mutableStateOf(false) }
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isFadingOut) 0f else 1f,
+        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
+        label = "overlayAlpha"
+    )
+
+    LaunchedEffect(Unit) {
+        startAnimation = true
+        delay(1100)
+        isFadingOut = true
+        delay(450)
+        onAnimationFinished()
+    }
+
+    if (overlayAlpha > 0f) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = overlayAlpha }
+                .background(Color(0xFF0F1115)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = logoScale
+                    scaleY = logoScale
+                    alpha = contentAlpha
+                }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(92.dp)
+                        .background(
+                            color = Color(0xFFE50914).copy(alpha = 0.15f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_ilyas_tv_logo),
+                        contentDescription = "İlyasTV Logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(60.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "İlyas",
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        text = "TV",
+                        color = Color(0xFFE50914),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Canlı Yayın & Medya Oyuncusu",
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.2.sp
+                )
             }
         }
     }
