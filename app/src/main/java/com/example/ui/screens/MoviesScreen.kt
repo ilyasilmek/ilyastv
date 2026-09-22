@@ -284,7 +284,34 @@ fun MoviesScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         // Content Area with Continue Watching carousel at top
-        when (viewMode) {
+        if (movies.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Movie,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = if (selectedCategory == "Favoriler") "Henüz favori film eklemediniz" else "Bu kategoride gösterilecek film bulunamadı",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        } else {
+            when (viewMode) {
             ViewModeSetting.EPG -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -372,6 +399,7 @@ fun MoviesScreen(
             }
         }
     }
+}
 }
 
 @Composable

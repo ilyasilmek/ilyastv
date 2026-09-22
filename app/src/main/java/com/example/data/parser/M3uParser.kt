@@ -316,26 +316,79 @@ object M3uParser {
         val lowerGroup = groupTitle?.lowercase() ?: ""
         val lowerName = displayName.lowercase()
 
-        return when {
-            // Filmler (Movies / VOD)
-            lowerUrl.contains("/movie/") ||
-            lowerGroup.contains("vod") || lowerGroup.contains("film") || lowerGroup.contains("movie") ||
-            lowerGroup.contains("sinema") || lowerGroup.contains("cinema") || lowerGroup.contains("4k film") ||
-            lowerGroup.contains("yerli film") || lowerGroup.contains("yabancı film") || lowerGroup.contains("vizyon") ||
-            lowerName.startsWith("film:") || lowerName.startsWith("vod:") ||
-            ((lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".mkv") || lowerUrl.endsWith(".avi")) && !lowerGroup.contains("live") && !lowerGroup.contains("canlı")) -> "MOVIE"
+        // 1. ÖNCELİKLİ: Dizi Tanıma Kontrolleri (Series / Show / Sezon / Bölüm / Platformlar)
+        val isSeriesByUrl = lowerUrl.contains("/series/") || 
+                            lowerUrl.contains("/show/") || 
+                            lowerUrl.contains("/tvshow/") || 
+                            lowerUrl.contains("/tvseries/") ||
+                            lowerUrl.contains("/episodes/")
+        
+        val isSeriesByGroup = lowerGroup.contains("dizi") || 
+                              lowerGroup.contains("series") || 
+                              lowerGroup.contains("tv show") || 
+                              lowerGroup.contains("tv-show") || 
+                              lowerGroup.contains("sezon") || 
+                              lowerGroup.contains("season") || 
+                              lowerGroup.contains("episode") || 
+                              lowerGroup.contains("bölüm") || 
+                              lowerGroup.contains("bolum") ||
+                              lowerGroup.contains("netflix") || 
+                              lowerGroup.contains("exxen") || 
+                              lowerGroup.contains("blutv") || 
+                              lowerGroup.contains("disney") || 
+                              lowerGroup.contains("gain") || 
+                              lowerGroup.contains("tabii") || 
+                              lowerGroup.contains("prime video") || 
+                              lowerGroup.contains("amazon") || 
+                              lowerGroup.contains("hbo") || 
+                              lowerGroup.contains("apple tv") || 
+                              lowerGroup.contains("anime") ||
+                              lowerGroup.contains("yerli dizi") || 
+                              lowerGroup.contains("yabancı dizi") || 
+                              lowerGroup.contains("yabanci dizi")
 
-            // Diziler (Series)
-            lowerUrl.contains("/series/") ||
-            lowerGroup.contains("dizi") || lowerGroup.contains("series") || lowerGroup.contains("sezon") ||
-            lowerGroup.contains("season") || lowerGroup.contains("episode") || lowerGroup.contains("bölüm") ||
-            lowerGroup.contains("netflix") || lowerGroup.contains("exxen") || lowerGroup.contains("blutv") ||
-            lowerGroup.contains("disney") || lowerGroup.contains("gain") || lowerGroup.contains("anime") ||
-            lowerName.contains(" s0") || lowerName.contains(" e0") || lowerName.contains(" sezon") || lowerName.contains(" bölüm") -> "SERIES"
+        val isSeriesByName = lowerName.contains(" s0") || 
+                             lowerName.contains(" e0") || 
+                             lowerName.contains(" s1") || 
+                             lowerName.contains(" e1") || 
+                             lowerName.contains(" s2") || 
+                             lowerName.contains(" e2") ||
+                             lowerName.contains("sezon") || 
+                             lowerName.contains("season") || 
+                             lowerName.contains("bölüm") || 
+                             lowerName.contains("bolum") || 
+                             lowerName.contains("episode") ||
+                             Regex("(?i)\\b(s\\d{1,2}|e\\d{1,3})\\b").containsMatchIn(lowerName) ||
+                             Regex("(?i)\\b(\\d{1,2}\\.?\\s*sezon)\\b").containsMatchIn(lowerName) ||
+                             Regex("(?i)\\b(\\d{1,3}\\.?\\s*bölüm|\\d{1,3}\\.?\\s*bolum)\\b").containsMatchIn(lowerName)
 
-            // Canlı TV (Live TV)
-            else -> "LIVE"
+        if (isSeriesByUrl || isSeriesByGroup || isSeriesByName) {
+            return "SERIES"
         }
+
+        // 2. Film / VOD Tanıma Kontrolleri (Movies / Cinema)
+        val isMovieByUrl = lowerUrl.contains("/movie/")
+        val isMovieByGroup = lowerGroup.contains("vod") || 
+                             lowerGroup.contains("film") || 
+                             lowerGroup.contains("movie") || 
+                             lowerGroup.contains("sinema") || 
+                             lowerGroup.contains("cinema") || 
+                             lowerGroup.contains("4k film") || 
+                             lowerGroup.contains("yerli film") || 
+                             lowerGroup.contains("yabancı film") || 
+                             lowerGroup.contains("yabanci film") || 
+                             lowerGroup.contains("vizyon")
+        
+        val isMovieByName = lowerName.startsWith("film:") || lowerName.startsWith("vod:")
+        val isMovieByExtension = (lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".mkv") || lowerUrl.endsWith(".avi")) && 
+                                 !lowerGroup.contains("live") && !lowerGroup.contains("canlı") && !lowerGroup.contains("canli")
+
+        if (isMovieByUrl || isMovieByGroup || isMovieByName || isMovieByExtension) {
+            return "MOVIE"
+        }
+
+        // 3. Canlı TV (Live TV)
+        return "LIVE"
     }
 
     private fun cleanCategory(raw: String?, displayName: String): String {

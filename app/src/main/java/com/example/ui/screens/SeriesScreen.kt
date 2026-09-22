@@ -283,89 +283,117 @@ fun SeriesScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         // Content Area with Continue Watching section
-        when (viewMode) {
-            ViewModeSetting.EPG -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+        if (series.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    if (seriesContinueWatching.isNotEmpty()) {
-                        item {
-                            ContinueWatchingSection(
-                                items = seriesContinueWatching,
-                                onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress,
-                                onManageItem = { selectedManageSeries = it }
-                            )
-                        }
-                    }
-
-                    itemsIndexed(series, key = { _, item -> item.id }) { index, serie ->
-                        ChannelEpgCard(
-                            channel = serie,
-                            channelIndex = index + 1,
-                            onClick = { onSeriesClick(serie) },
-                            onToggleFavorite = { onToggleFavorite(serie) },
-                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(16.dp), onClick = { onSeriesClick(serie) })
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Tv,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = if (selectedCategory == "Favoriler") "Henüz favori dizi eklemediniz" else "Bu kategoride gösterilecek dizi bulunamadı",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
-            ViewModeSetting.GRID -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (seriesContinueWatching.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            ContinueWatchingSection(
-                                items = seriesContinueWatching,
-                                onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress,
-                                onManageItem = { selectedManageSeries = it }
+        } else {
+            when (viewMode) {
+                ViewModeSetting.EPG -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (seriesContinueWatching.isNotEmpty()) {
+                            item {
+                                ContinueWatchingSection(
+                                    items = seriesContinueWatching,
+                                    onSeriesClick = onSeriesClick,
+                                    onResetProgress = onResetProgress,
+                                    onManageItem = { selectedManageSeries = it }
+                                )
+                            }
+                        }
+
+                        itemsIndexed(series, key = { _, item -> item.id }) { index, serie ->
+                            ChannelEpgCard(
+                                channel = serie,
+                                channelIndex = index + 1,
+                                onClick = { onSeriesClick(serie) },
+                                onToggleFavorite = { onToggleFavorite(serie) },
+                                modifier = Modifier.tvFocusable(shape = RoundedCornerShape(16.dp), onClick = { onSeriesClick(serie) })
                             )
                         }
-                    }
-
-                    itemsIndexed(series, key = { _, item -> item.id }) { _, serie ->
-                        ChannelGridCard(
-                            channel = serie,
-                            onClick = { onSeriesClick(serie) },
-                            onToggleFavorite = { onToggleFavorite(serie) },
-                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(14.dp), onClick = { onSeriesClick(serie) })
-                        )
                     }
                 }
-            }
-            ViewModeSetting.LIST -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (seriesContinueWatching.isNotEmpty()) {
-                        item {
-                            ContinueWatchingSection(
-                                items = seriesContinueWatching,
-                                onSeriesClick = onSeriesClick,
-                                onResetProgress = onResetProgress,
-                                onManageItem = { selectedManageSeries = it }
+                ViewModeSetting.GRID -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (seriesContinueWatching.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                ContinueWatchingSection(
+                                    items = seriesContinueWatching,
+                                    onSeriesClick = onSeriesClick,
+                                    onResetProgress = onResetProgress,
+                                    onManageItem = { selectedManageSeries = it }
+                                )
+                            }
+                        }
+
+                        itemsIndexed(series, key = { _, item -> item.id }) { _, serie ->
+                            ChannelGridCard(
+                                channel = serie,
+                                onClick = { onSeriesClick(serie) },
+                                onToggleFavorite = { onToggleFavorite(serie) },
+                                modifier = Modifier.tvFocusable(shape = RoundedCornerShape(14.dp), onClick = { onSeriesClick(serie) })
                             )
                         }
                     }
+                }
+                ViewModeSetting.LIST -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (seriesContinueWatching.isNotEmpty()) {
+                            item {
+                                ContinueWatchingSection(
+                                    items = seriesContinueWatching,
+                                    onSeriesClick = onSeriesClick,
+                                    onResetProgress = onResetProgress,
+                                    onManageItem = { selectedManageSeries = it }
+                                )
+                            }
+                        }
 
-                    itemsIndexed(series, key = { _, item -> item.id }) { index, serie ->
-                        ChannelListCard(
-                            channel = serie,
-                            channelIndex = index + 1,
-                            onClick = { onSeriesClick(serie) },
-                            onToggleFavorite = { onToggleFavorite(serie) },
-                            modifier = Modifier.tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onSeriesClick(serie) })
-                        )
+                        itemsIndexed(series, key = { _, item -> item.id }) { index, serie ->
+                            ChannelListCard(
+                                channel = serie,
+                                channelIndex = index + 1,
+                                onClick = { onSeriesClick(serie) },
+                                onToggleFavorite = { onToggleFavorite(serie) },
+                                modifier = Modifier.tvFocusable(shape = RoundedCornerShape(12.dp), onClick = { onSeriesClick(serie) })
+                            )
+                        }
                     }
                 }
             }
