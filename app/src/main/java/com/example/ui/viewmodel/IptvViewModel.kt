@@ -236,11 +236,11 @@ class IptvViewModel(application: Application) : AndroidViewModel(application) {
     val bufferSetting: StateFlow<BufferOption> = _bufferSetting.asStateFlow()
 
     private fun loadBrandStyle(): ThemeBrandStyle {
-        val name = prefs.getString("app_brand_style", ThemeBrandStyle.MODERN_ILYAS_TV.name) ?: ThemeBrandStyle.MODERN_ILYAS_TV.name
+        val name = prefs.getString("app_brand_style", ThemeBrandStyle.CLASSIC_STREAMFLOW.name) ?: ThemeBrandStyle.CLASSIC_STREAMFLOW.name
         return try {
             ThemeBrandStyle.valueOf(name)
         } catch (_: Exception) {
-            ThemeBrandStyle.MODERN_ILYAS_TV
+            ThemeBrandStyle.CLASSIC_STREAMFLOW
         }
     }
 

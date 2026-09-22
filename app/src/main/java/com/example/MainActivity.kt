@@ -96,13 +96,18 @@ import com.example.ui.theme.ThemeBrandStyle
 import com.example.ui.theme.ViewModeSetting
 import com.example.ui.viewmodel.IptvViewModel
 
-enum class NavigationTab(val title: String, val activeIcon: ImageVector, val inactiveIcon: ImageVector) {
-    LIVE_TV("Canlı TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv),
-    MOVIES("Filmler", Icons.Filled.Movie, Icons.Outlined.Movie),
-    SERIES("Diziler", Icons.Filled.Tv, Icons.Outlined.Tv),
-    DOWNLOADS("İndirilenler", Icons.Filled.Download, Icons.Outlined.Download),
-    SEARCH("Arama", Icons.Filled.Search, Icons.Outlined.Search),
-    ACCOUNT("Hesap", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong)
+enum class NavigationTab(
+    val title: String,
+    val activeIcon: ImageVector,
+    val inactiveIcon: ImageVector,
+    val accentColor: Color
+) {
+    LIVE_TV("Canlı TV", Icons.Filled.LiveTv, Icons.Outlined.LiveTv, Color(0xFFFF3B30)),       // Canlı Kırmızı
+    MOVIES("Filmler", Icons.Filled.Movie, Icons.Outlined.Movie, Color(0xFFFF9500)),            // Canlı Sinema Turuncusu
+    SERIES("Diziler", Icons.Filled.Tv, Icons.Outlined.Tv, Color(0xFF00C7BE)),                 // Canlı Turkuaz
+    DOWNLOADS("İndirilenler", Icons.Filled.Download, Icons.Outlined.Download, Color(0xFF34C759)), // Canlı Zümrüt Yeşili
+    SEARCH("Arama", Icons.Filled.Search, Icons.Outlined.Search, Color(0xFF007AFF)),            // Canlı Safir Mavisi
+    ACCOUNT("Hesap", Icons.Filled.ReceiptLong, Icons.Outlined.ReceiptLong, Color(0xFFAF52DE))  // Canlı Mor
 }
 
 class MainActivity : ComponentActivity() {
@@ -319,37 +324,6 @@ fun StreamFlowApp(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Quick Brand Style Toggle Icon (Modern İlyasTV vs Klasik)
-                            IconButton(
-                                onClick = {
-                                    val nextBrand = if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) {
-                                        ThemeBrandStyle.CLASSIC_STREAMFLOW
-                                    } else {
-                                        ThemeBrandStyle.MODERN_ILYAS_TV
-                                    }
-                                    viewModel.setBrandStyle(nextBrand)
-                                },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                                    .tvFocusable(shape = CircleShape) {
-                                        val nextBrand = if (brandStyle == ThemeBrandStyle.MODERN_ILYAS_TV) {
-                                            ThemeBrandStyle.CLASSIC_STREAMFLOW
-                                        } else {
-                                            ThemeBrandStyle.MODERN_ILYAS_TV
-                                        }
-                                        viewModel.setBrandStyle(nextBrand)
-                                    }
-                                    .testTag("quick_brand_style_toggle_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Palette,
-                                    contentDescription = "Renk Teması Değiştir (${brandStyle.title})",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
                             // Quick Theme Toggle Icon (Cycles: System -> Dark -> Light -> System)
                             IconButton(
                                 onClick = {
@@ -461,7 +435,8 @@ fun StreamFlowApp(
                                 if (isSelected) {
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        color = tab.accentColor.copy(alpha = 0.22f),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, tab.accentColor.copy(alpha = 0.45f)),
                                         modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
                                     ) {
                                         Row(
@@ -471,13 +446,13 @@ fun StreamFlowApp(
                                             Icon(
                                                 imageVector = tab.activeIcon,
                                                 contentDescription = tab.title,
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                tint = tab.accentColor,
                                                 modifier = Modifier.size(17.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 text = tab.title,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                color = tab.accentColor,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -487,7 +462,7 @@ fun StreamFlowApp(
                                     Icon(
                                         imageVector = tab.inactiveIcon,
                                         contentDescription = tab.title,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = tab.accentColor.copy(alpha = 0.85f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))

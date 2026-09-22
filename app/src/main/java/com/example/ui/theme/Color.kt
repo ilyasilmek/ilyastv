@@ -3,16 +3,16 @@ package com.example.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
-// 1. MODERN İLYASTV MARKA VE TEMA RENKLERİ (MODERN OTT / CINEMA RED & OBSIDIAN)
+// 1. MODERN İLYASTV MARKA VE TEMA RENKLERİ (MODERN OTT / ELEKTRİK TURUNCU & OBSIDIAN)
 // ============================================================================
-val IlyasTvBrandRed = Color(0xFFE50914)              // İlyasTV Logo & Ana Marka Kırmızısı
-val IlyasTvBrandRedGlow = Color(0xFFFF3B47)          // Parlama ve Vurgu Kırmızısı
-val IlyasTvBrandRedDark = Color(0xFFB30710)          // Basılı & Derin Kırmızı
-val IlyasTvAmberGold = Color(0xFFFFB800)             // VIP / Puan / Yıldız Vurgusu
+val IlyasTvBrandOrange = Color(0xFFFF6D00)           // İlyasTV Logo & Ana Marka Turuncusu (Canlı Elektrik Turuncu)
+val IlyasTvBrandOrangeGlow = Color(0xFFFF9100)       // Parlama ve Vurgu Turuncusu
+val IlyasTvBrandOrangeDark = Color(0xFFDD5700)       // Basılı & Derin Turuncu
+val IlyasTvAmberGold = Color(0xFFFFC107)             // VIP / Puan / Yıldız Vurgusu
 val IlyasTvLiveEmerald = Color(0xFF00E676)           // Canlı Yayın / Aktiflik Göstergesi
-val IlyasTvAccentOrange = Color(0xFFFF9800)          // Uyarı ve Bildirim Turuncusu
+val IlyasTvAccentOrange = Color(0xFFFF6D00)          // Ana Vurgu Turuncusu
 
-// Modern Koyu Tema Renkleri (Obsidian, Koyu Arduvaz ve Sinematik Atmosfer)
+// Modern Koyu Tema Renkleri (Obsidian, Koyu Arduvaz ve Sinematik Turuncu Atmosfer)
 val IlyasTvDarkBackground = Color(0xFF0A0C10)
 val IlyasTvDarkSurface = Color(0xFF10131B)
 val IlyasTvDarkSurfaceDim = Color(0xFF080A0E)
@@ -28,20 +28,20 @@ val IlyasTvDarkOnBackground = Color(0xFFF1F3F8)
 val IlyasTvDarkOnSurface = Color(0xFFF1F3F8)
 val IlyasTvDarkOnSurfaceVariant = Color(0xFFA6B0C3)
 
-val IlyasTvDarkPrimary = Color(0xFFE50914)            // Dinamik İlyasTV Kırmızısı
+val IlyasTvDarkPrimary = Color(0xFFFF6D00)            // Dinamik İlyasTV Canlı Turuncusu
 val IlyasTvDarkOnPrimary = Color(0xFFFFFFFF)
-val IlyasTvDarkPrimaryContainer = Color(0xFF5D0005)   // Koyu kızıl arka plan konteyneri
-val IlyasTvDarkOnPrimaryContainer = Color(0xFFFFDAD6)
+val IlyasTvDarkPrimaryContainer = Color(0xFF4A1F00)   // Derin sıcak turuncu arka plan konteyneri
+val IlyasTvDarkOnPrimaryContainer = Color(0xFFFFDBCF)
 
 val IlyasTvDarkSecondary = Color(0xFFBAC3D4)          // Titanyum / Metalik Gümüş
 val IlyasTvDarkOnSecondary = Color(0xFF232B38)
 val IlyasTvDarkSecondaryContainer = Color(0xFF374154)
 val IlyasTvDarkOnSecondaryContainer = Color(0xFFD7E0F2)
 
-val IlyasTvDarkTertiary = Color(0xFFFFB800)           // Sinematik Amber Altın
-val IlyasTvDarkOnTertiary = Color(0xFF412D00)
-val IlyasTvDarkTertiaryContainer = Color(0xFF5D4200)
-val IlyasTvDarkOnTertiaryContainer = Color(0xFFFFDF9E)
+val IlyasTvDarkTertiary = Color(0xFFFFC107)           // Sinematik Amber Altın
+val IlyasTvDarkOnTertiary = Color(0xFF3E2E00)
+val IlyasTvDarkTertiaryContainer = Color(0xFF5B4300)
+val IlyasTvDarkOnTertiaryContainer = Color(0xFFFFE088)
 
 val IlyasTvDarkError = Color(0xFFFFB4AB)
 val IlyasTvDarkOnError = Color(0xFF690005)
@@ -51,7 +51,7 @@ val IlyasTvDarkOnErrorContainer = Color(0xFFFFDAD6)
 val IlyasTvDarkOutline = Color(0xFF4A556B)
 val IlyasTvDarkOutlineVariant = Color(0xFF252D3C)
 
-// Modern Açık Tema Renkleri (Temiz, Berrak ve İlyasTV Vurguları)
+// Modern Açık Tema Renkleri (Temiz, Berrak ve İlyasTV Turuncu Vurguları)
 val IlyasTvLightBackground = Color(0xFFF7F8FB)
 val IlyasTvLightSurface = Color(0xFFFFFFFF)
 val IlyasTvLightSurfaceDim = Color(0xFFECEFF5)
@@ -67,10 +67,10 @@ val IlyasTvLightOnBackground = Color(0xFF12161E)
 val IlyasTvLightOnSurface = Color(0xFF12161E)
 val IlyasTvLightOnSurfaceVariant = Color(0xFF495264)
 
-val IlyasTvLightPrimary = Color(0xFFC00010)           // Açık mod için zengin yakut kırmızısı
+val IlyasTvLightPrimary = Color(0xFFE65100)           // Açık mod için kontrastlı derin mandalina turuncusu
 val IlyasTvLightOnPrimary = Color(0xFFFFFFFF)
-val IlyasTvLightPrimaryContainer = Color(0xFFFFDAD6)
-val IlyasTvLightOnPrimaryContainer = Color(0xFF410002)
+val IlyasTvLightPrimaryContainer = Color(0xFFFFDBCF)
+val IlyasTvLightOnPrimaryContainer = Color(0xFF341000)
 
 val IlyasTvLightSecondary = Color(0xFF505A6D)
 val IlyasTvLightOnSecondary = Color(0xFFFFFFFF)
@@ -162,78 +162,77 @@ val LegacyStreamFlowLightOutlineVariant = Color(0xFFC4CBD9)
 
 
 // ============================================================================
-// 3. GERİYE DÖNÜK UYUMLULUK KÖPRÜLERİ (BACKWARD COMPATIBILITY & ACTIVE MAPPING)
+// 3. GERİYE DÖNÜK UYUMLULUK KÖPRÜLERİ (ORİJİNAL TEMA YAPISI GERİ YÜKLENDİ)
 // ============================================================================
-// Bu değişkenler mevcut bileşenlerin hatasız çalışmasını sağlarken İlyasTV'nin
-// modern renk paletini tüm ekrana otomatik olarak yansıtır.
-val StreamFlowBackground = IlyasTvDarkBackground
-val StreamFlowSurface = IlyasTvDarkSurface
-val StreamFlowSurfaceDim = IlyasTvDarkSurfaceDim
-val StreamFlowSurfaceBright = IlyasTvDarkSurfaceBright
-val StreamFlowSurfaceContainerLowest = IlyasTvDarkSurfaceContainerLowest
-val StreamFlowSurfaceContainerLow = IlyasTvDarkSurfaceContainerLow
-val StreamFlowSurfaceContainer = IlyasTvDarkSurfaceContainer
-val StreamFlowSurfaceContainerHigh = IlyasTvDarkSurfaceContainerHigh
-val StreamFlowSurfaceContainerHighest = IlyasTvDarkSurfaceContainerHighest
-val StreamFlowSurfaceVariant = IlyasTvDarkSurfaceVariant
+val StreamFlowBackground = LegacyStreamFlowBackground
+val StreamFlowSurface = LegacyStreamFlowSurface
+val StreamFlowSurfaceDim = LegacyStreamFlowSurfaceDim
+val StreamFlowSurfaceBright = LegacyStreamFlowSurfaceBright
+val StreamFlowSurfaceContainerLowest = LegacyStreamFlowSurfaceContainerLowest
+val StreamFlowSurfaceContainerLow = LegacyStreamFlowSurfaceContainerLow
+val StreamFlowSurfaceContainer = LegacyStreamFlowSurfaceContainer
+val StreamFlowSurfaceContainerHigh = LegacyStreamFlowSurfaceContainerHigh
+val StreamFlowSurfaceContainerHighest = LegacyStreamFlowSurfaceContainerHighest
+val StreamFlowSurfaceVariant = LegacyStreamFlowSurfaceVariant
 
-val StreamFlowOnBackground = IlyasTvDarkOnBackground
-val StreamFlowOnSurface = IlyasTvDarkOnSurface
-val StreamFlowOnSurfaceVariant = IlyasTvDarkOnSurfaceVariant
+val StreamFlowOnBackground = LegacyStreamFlowOnBackground
+val StreamFlowOnSurface = LegacyStreamFlowOnSurface
+val StreamFlowOnSurfaceVariant = LegacyStreamFlowOnSurfaceVariant
 
-val StreamFlowPrimary = IlyasTvDarkPrimary
-val StreamFlowOnPrimary = IlyasTvDarkOnPrimary
-val StreamFlowPrimaryContainer = IlyasTvDarkPrimaryContainer
-val StreamFlowOnPrimaryContainer = IlyasTvDarkOnPrimaryContainer
+val StreamFlowPrimary = LegacyStreamFlowPrimary
+val StreamFlowOnPrimary = LegacyStreamFlowOnPrimary
+val StreamFlowPrimaryContainer = LegacyStreamFlowPrimaryContainer
+val StreamFlowOnPrimaryContainer = LegacyStreamFlowOnPrimaryContainer
 
-val StreamFlowSecondary = IlyasTvDarkSecondary
-val StreamFlowOnSecondary = IlyasTvDarkOnSecondary
-val StreamFlowSecondaryContainer = IlyasTvDarkSecondaryContainer
-val StreamFlowOnSecondaryContainer = IlyasTvDarkOnSecondaryContainer
+val StreamFlowSecondary = LegacyStreamFlowSecondary
+val StreamFlowOnSecondary = LegacyStreamFlowOnSecondary
+val StreamFlowSecondaryContainer = LegacyStreamFlowSecondaryContainer
+val StreamFlowOnSecondaryContainer = LegacyStreamFlowOnSecondaryContainer
 
-val StreamFlowTertiary = IlyasTvDarkTertiary
-val StreamFlowOnTertiary = IlyasTvDarkOnTertiary
-val StreamFlowTertiaryContainer = IlyasTvDarkTertiaryContainer
+val StreamFlowTertiary = LegacyStreamFlowTertiary
+val StreamFlowOnTertiary = LegacyStreamFlowOnTertiary
+val StreamFlowTertiaryContainer = LegacyStreamFlowTertiaryContainer
 
-val StreamFlowError = IlyasTvDarkError
-val StreamFlowOnError = IlyasTvDarkOnError
-val StreamFlowErrorContainer = IlyasTvDarkErrorContainer
-val StreamFlowOnErrorContainer = IlyasTvDarkOnErrorContainer
+val StreamFlowError = LegacyStreamFlowError
+val StreamFlowOnError = LegacyStreamFlowOnError
+val StreamFlowErrorContainer = LegacyStreamFlowErrorContainer
+val StreamFlowOnErrorContainer = LegacyStreamFlowOnErrorContainer
 
-val StreamFlowOutline = IlyasTvDarkOutline
-val StreamFlowOutlineVariant = IlyasTvDarkOutlineVariant
+val StreamFlowOutline = LegacyStreamFlowOutline
+val StreamFlowOutlineVariant = LegacyStreamFlowOutlineVariant
+val IlyasTvBrandRed = Color(0xFFE50914)              // Canlı Yayın ve Acil Uyarılar İçin
 val StreamFlowLiveRed = IlyasTvBrandRed
 val StreamFlowAccentOrange = IlyasTvAccentOrange
 val StreamFlowAccentGold = IlyasTvAmberGold
 
 // Light theme backward-compatibility
-val StreamFlowLightBackground = IlyasTvLightBackground
-val StreamFlowLightSurface = IlyasTvLightSurface
-val StreamFlowLightSurfaceDim = IlyasTvLightSurfaceDim
-val StreamFlowLightSurfaceBright = IlyasTvLightSurfaceBright
-val StreamFlowLightSurfaceContainerLowest = IlyasTvLightSurfaceContainerLowest
-val StreamFlowLightSurfaceContainerLow = IlyasTvLightSurfaceContainerLow
-val StreamFlowLightSurfaceContainer = IlyasTvLightSurfaceContainer
-val StreamFlowLightSurfaceContainerHigh = IlyasTvLightSurfaceContainerHigh
-val StreamFlowLightSurfaceContainerHighest = IlyasTvLightSurfaceContainerHighest
-val StreamFlowLightSurfaceVariant = IlyasTvLightSurfaceVariant
+val StreamFlowLightBackground = LegacyStreamFlowLightBackground
+val StreamFlowLightSurface = LegacyStreamFlowLightSurface
+val StreamFlowLightSurfaceDim = LegacyStreamFlowLightSurfaceDim
+val StreamFlowLightSurfaceBright = LegacyStreamFlowLightSurfaceBright
+val StreamFlowLightSurfaceContainerLowest = LegacyStreamFlowLightSurfaceContainerLowest
+val StreamFlowLightSurfaceContainerLow = LegacyStreamFlowLightSurfaceContainerLow
+val StreamFlowLightSurfaceContainer = LegacyStreamFlowLightSurfaceContainer
+val StreamFlowLightSurfaceContainerHigh = LegacyStreamFlowLightSurfaceContainerHigh
+val StreamFlowLightSurfaceContainerHighest = LegacyStreamFlowLightSurfaceContainerHighest
+val StreamFlowLightSurfaceVariant = LegacyStreamFlowLightSurfaceVariant
 
-val StreamFlowLightOnBackground = IlyasTvLightOnBackground
-val StreamFlowLightOnSurface = IlyasTvLightOnSurface
-val StreamFlowLightOnSurfaceVariant = IlyasTvLightOnSurfaceVariant
+val StreamFlowLightOnBackground = LegacyStreamFlowLightOnBackground
+val StreamFlowLightOnSurface = LegacyStreamFlowLightOnSurface
+val StreamFlowLightOnSurfaceVariant = LegacyStreamFlowLightOnSurfaceVariant
 
-val StreamFlowLightPrimary = IlyasTvLightPrimary
-val StreamFlowLightOnPrimary = IlyasTvLightOnPrimary
-val StreamFlowLightPrimaryContainer = IlyasTvLightPrimaryContainer
-val StreamFlowLightOnPrimaryContainer = IlyasTvLightOnPrimaryContainer
+val StreamFlowLightPrimary = LegacyStreamFlowLightPrimary
+val StreamFlowLightOnPrimary = LegacyStreamFlowLightOnPrimary
+val StreamFlowLightPrimaryContainer = LegacyStreamFlowLightPrimaryContainer
+val StreamFlowLightOnPrimaryContainer = LegacyStreamFlowLightOnPrimaryContainer
 
-val StreamFlowLightSecondary = IlyasTvLightSecondary
-val StreamFlowLightOnSecondary = IlyasTvLightOnSecondary
-val StreamFlowLightSecondaryContainer = IlyasTvLightSecondaryContainer
-val StreamFlowLightOnSecondaryContainer = IlyasTvLightOnSecondaryContainer
+val StreamFlowLightSecondary = LegacyStreamFlowLightSecondary
+val StreamFlowLightOnSecondary = LegacyStreamFlowLightOnSecondary
+val StreamFlowLightSecondaryContainer = LegacyStreamFlowLightSecondaryContainer
+val StreamFlowLightOnSecondaryContainer = LegacyStreamFlowLightOnSecondaryContainer
 
-val StreamFlowLightOutline = IlyasTvLightOutline
-val StreamFlowLightOutlineVariant = IlyasTvLightOutlineVariant
+val StreamFlowLightOutline = LegacyStreamFlowLightOutline
+val StreamFlowLightOutlineVariant = LegacyStreamFlowLightOutlineVariant
 
 
 

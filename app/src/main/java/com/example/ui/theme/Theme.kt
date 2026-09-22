@@ -25,12 +25,12 @@ enum class ViewModeSetting(val title: String) {
  * Beğenilmezse tek bir ayarla önceki klasik StreamFlow temasına anında geri dönülebilir!
  */
 enum class ThemeBrandStyle(val title: String, val description: String) {
-    MODERN_ILYAS_TV("Modern İlyasTV", "Sinematik kırmızı ve obsidian koyu tema"),
+    MODERN_ILYAS_TV("Modern İlyasTV", "Elektrik turuncu ve obsidian koyu tema"),
     CLASSIC_STREAMFLOW("Klasik Tema", "Önceki mavi ve arduvaz tema (Geri dönüş için korundu)")
 }
 
-// Aktif varsayılan marka stili (Kullanıcı dilediğinde CLASSIC_STREAMFLOW yapılabilir)
-var activeThemeBrandStyle = ThemeBrandStyle.MODERN_ILYAS_TV
+// Aktif varsayılan marka stili (Orijinal Klasik Tema)
+var activeThemeBrandStyle = ThemeBrandStyle.CLASSIC_STREAMFLOW
 
 // ============================================================================
 // 1. MODERN İLYASTV RENK ŞEMALARI (SİNEMATİK KIRMIZI & OBSIDIAN)
