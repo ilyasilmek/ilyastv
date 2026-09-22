@@ -205,15 +205,28 @@ fun AccountScreen(
                         modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
                     )
 
-                    // Tabs: Link / Xtream / Dosya
+                    // Tabs: Link / Xtream / Dosya (Pastel Renk Vurguları ile)
+                    val m3uPastel = Color(0xFF4A90E2)       // Yumuşak Pastel Mavi
+                    val xtreamPastel = Color(0xFF9B51E0)    // Yumuşak Pastel Mor
+                    val filePastel = Color(0xFF27AE60)      // Yumuşak Pastel Zümrüt / Yeşil
+
                     TabRow(
                         selectedTabIndex = selectedTab,
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        contentColor = when (selectedTab) {
+                            0 -> m3uPastel
+                            1 -> xtreamPastel
+                            else -> filePastel
+                        },
                         indicator = { tabPositions ->
+                            val activeTabColor = when (selectedTab) {
+                                0 -> m3uPastel
+                                1 -> xtreamPastel
+                                else -> filePastel
+                            }
                             TabRowDefaults.SecondaryIndicator(
                                 Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                color = MaterialTheme.colorScheme.primary
+                                color = activeTabColor
                             )
                         },
                         modifier = Modifier
@@ -223,20 +236,62 @@ fun AccountScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("M3U Linki", fontWeight = FontWeight.SemiBold, fontSize = 13.sp) },
-                            icon = { Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            text = { 
+                                Text(
+                                    "M3U Linki", 
+                                    fontWeight = FontWeight.SemiBold, 
+                                    fontSize = 13.sp,
+                                    color = if (selectedTab == 0) m3uPastel else MaterialTheme.colorScheme.onSurfaceVariant
+                                ) 
+                            },
+                            icon = { 
+                                Icon(
+                                    Icons.Default.Link, 
+                                    contentDescription = null, 
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (selectedTab == 0) m3uPastel else m3uPastel.copy(alpha = 0.7f)
+                                ) 
+                            }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("Xtream", fontWeight = FontWeight.SemiBold, fontSize = 13.sp) },
-                            icon = { Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            text = { 
+                                Text(
+                                    "Xtream", 
+                                    fontWeight = FontWeight.SemiBold, 
+                                    fontSize = 13.sp,
+                                    color = if (selectedTab == 1) xtreamPastel else MaterialTheme.colorScheme.onSurfaceVariant
+                                ) 
+                            },
+                            icon = { 
+                                Icon(
+                                    Icons.Default.Dns, 
+                                    contentDescription = null, 
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (selectedTab == 1) xtreamPastel else xtreamPastel.copy(alpha = 0.7f)
+                                ) 
+                            }
                         )
                         Tab(
                             selected = selectedTab == 2,
                             onClick = { selectedTab = 2 },
-                            text = { Text("M3U Dosyası", fontWeight = FontWeight.SemiBold, fontSize = 13.sp) },
-                            icon = { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            text = { 
+                                Text(
+                                    "M3U Dosyası", 
+                                    fontWeight = FontWeight.SemiBold, 
+                                    fontSize = 13.sp,
+                                    color = if (selectedTab == 2) filePastel else MaterialTheme.colorScheme.onSurfaceVariant
+                                ) 
+                            },
+                            icon = { 
+                                Icon(
+                                    Icons.Default.FolderOpen, 
+                                    contentDescription = null, 
+                                    modifier = Modifier.size(16.dp),
+                                    tint = if (selectedTab == 2) filePastel else filePastel.copy(alpha = 0.7f)
+                                ) 
+                            }
                         )
                     }
 
@@ -278,8 +333,8 @@ fun AccountScreen(
                                 enabled = linkUrl.isNotBlank() && importState !is ImportState.Loading,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                    containerColor = m3uPastel,
+                                    contentColor = Color.White
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -287,9 +342,9 @@ fun AccountScreen(
                                     .testTag("submit_m3u_url_button")
                             ) {
                                 if (importState is ImportState.Loading) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Bağlanıyor ve Kanallar Yükleniyor...", color = MaterialTheme.colorScheme.onPrimary)
+                                    Text("Bağlanıyor ve Kanallar Yükleniyor...", color = Color.White)
                                 } else {
                                     Icon(Icons.Default.CloudDownload, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -344,8 +399,8 @@ fun AccountScreen(
                                 enabled = xtreamServer.isNotBlank() && xtreamUser.isNotBlank() && xtreamPass.isNotBlank() && importState !is ImportState.Loading,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                    containerColor = xtreamPastel,
+                                    contentColor = Color.White
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -353,9 +408,9 @@ fun AccountScreen(
                                     .testTag("submit_xtream_button")
                             ) {
                                 if (importState is ImportState.Loading) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Xtream Hesabına Giriş Yapılıyor...", color = MaterialTheme.colorScheme.onPrimary)
+                                    Text("Xtream Hesabına Giriş Yapılıyor...", color = Color.White)
                                 } else {
                                     Icon(Icons.Default.Dns, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -370,8 +425,8 @@ fun AccountScreen(
                                     onClick = { filePickerLauncher.launch("*/*") },
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        containerColor = filePastel,
+                                        contentColor = Color.White
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -410,8 +465,8 @@ fun AccountScreen(
                                     enabled = pasteContent.isNotBlank() && importState !is ImportState.Loading,
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                        containerColor = filePastel.copy(alpha = 0.85f),
+                                        contentColor = Color.White
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -632,7 +687,7 @@ fun AccountScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
-                    // Theme Mode Selector
+                    // Theme Mode Selector (Pastel İndigo)
                     val themeIcon = when (themeSetting) {
                         AppThemeSetting.DARK -> Icons.Default.DarkMode
                         AppThemeSetting.LIGHT -> Icons.Default.LightMode
@@ -642,12 +697,14 @@ fun AccountScreen(
                         icon = themeIcon,
                         title = "Tema Modu",
                         subtitle = themeSetting.title,
+                        iconTint = Color(0xFF5C6BC0),
+                        iconBg = Color(0xFF5C6BC0).copy(alpha = 0.14f),
                         onClick = { showThemeDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Default View Mode Selector
+                    // Default View Mode Selector (Pastel Turkuaz)
                     val viewIcon = when (viewModeSetting) {
                         ViewModeSetting.EPG -> Icons.Default.Subject
                         ViewModeSetting.GRID -> Icons.Default.GridView
@@ -657,67 +714,81 @@ fun AccountScreen(
                         icon = viewIcon,
                         title = "Varsayılan Ekran Görünümü",
                         subtitle = viewModeSetting.title,
+                        iconTint = Color(0xFF26A69A),
+                        iconBg = Color(0xFF26A69A).copy(alpha = 0.14f),
                         onClick = { showViewModeDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Buffer Setting
+                    // Buffer Setting (Pastel Mavi)
                     SettingsItemRow(
                         icon = Icons.Default.Speed,
                         title = "Arabellek & Yayın Ayarı",
                         subtitle = bufferOption.label,
+                        iconTint = Color(0xFF42A5F5),
+                        iconBg = Color(0xFF42A5F5).copy(alpha = 0.14f),
                         onClick = { showBufferDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Clear Search History
+                    // Clear Search History (Pastel Deniz Mavisi)
                     SettingsItemRow(
                         icon = Icons.Default.SearchOff,
                         title = "Arama Geçmişini Temizle",
                         subtitle = "Kaydedilen son arama sorgularını sıfırlar",
+                        iconTint = Color(0xFF29B6F6),
+                        iconBg = Color(0xFF29B6F6).copy(alpha = 0.14f),
                         onClick = { showClearSearchDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Clear Favorites
+                    // Clear Favorites (Pastel Pembe / Mercan)
                     SettingsItemRow(
                         icon = Icons.Default.FavoriteBorder,
                         title = "Favori Listesini Temizle",
                         subtitle = "Tüm kanallardaki favori işaretlerini kaldırır",
+                        iconTint = Color(0xFFEC407A),
+                        iconBg = Color(0xFFEC407A).copy(alpha = 0.14f),
                         onClick = { showClearFavoritesDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Clear Watch History
+                    // Clear Watch History (Pastel Turuncu / Kehribar)
                     SettingsItemRow(
                         icon = Icons.Default.History,
                         title = "İzleme Geçmişini Sıfırla",
                         subtitle = "Kaldığın yerden devam et ve son izlenenler geçmişini temizler",
+                        iconTint = Color(0xFFFFA726),
+                        iconBg = Color(0xFFFFA726).copy(alpha = 0.14f),
                         onClick = { showClearWatchHistoryDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Legal Disclaimer & Policy
+                    // Legal Disclaimer & Policy (Pastel Mor / Leylak)
                     SettingsItemRow(
                         icon = Icons.Default.Gavel,
                         title = "Yasal Uyarı & Sorumluluk Reddi",
                         subtitle = "Telif hakları bildirimi, kullanım şartları ve yasal sözleşme",
+                        iconTint = Color(0xFFAB47BC),
+                        iconBg = Color(0xFFAB47BC).copy(alpha = 0.14f),
                         onClick = { showDisclaimerDialog = true }
                     )
 
                     Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)))
 
-                    // Clear All Data
+                    // Clear All Data (Pastel Gül / Kırmızı)
                     SettingsItemRow(
                         icon = Icons.Default.DeleteOutline,
                         title = "Tüm Listeleri ve Verileri Temizle",
                         subtitle = "Tüm kanalları siler ve uygulamayı sıfırlar",
-                        titleColor = StreamFlowLiveRed,
+                        titleColor = Color(0xFFE57373),
+                        iconTint = Color(0xFFEF5350),
+                        iconBg = Color(0xFFEF5350).copy(alpha = 0.14f),
                         onClick = { showClearConfirmDialog = true }
                     )
                 }
@@ -1314,6 +1385,8 @@ private fun SettingsItemRow(
     title: String,
     subtitle: String,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    iconBg: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     onClick: () -> Unit
 ) {
     Row(
@@ -1330,14 +1403,14 @@ private fun SettingsItemRow(
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = iconBg,
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (titleColor == StreamFlowLiveRed) StreamFlowLiveRed else MaterialTheme.colorScheme.primary,
+                        tint = iconTint,
                         modifier = Modifier.size(18.dp)
                     )
                 }
