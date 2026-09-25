@@ -20,8 +20,8 @@ android {
         applicationId = "com.aistudio.streamflow.iptv"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.54.05"
+        versionCode = 6
+        versionName = "1.54.06"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
